@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { CalendarPlus, LogOut, Save, ShieldCheck, Trophy, Zap } from "lucide-react";
+import { CalendarPlus, LogOut, Minus, Plus, Save, ShieldCheck, Trophy, Zap } from "lucide-react";
 import { fetchScoreboard, hasFirebaseConfig, updateScoreboard } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
 
@@ -73,9 +73,39 @@ function calculateOvers(currentOvers) {
   return nextBall >= 6 ? `${overs + 1}.0` : `${overs}.${nextBall}`;
 }
 
+function subtractOvers(currentOvers) {
+  const [overs = 0, balls = 0] = String(currentOvers || "0.0").split(".").map(Number);
+  if (overs <= 0 && balls <= 0) return "0.0";
+  if (balls > 0) return `${overs}.${balls - 1}`;
+  return `${Math.max(0, overs - 1)}.5`;
+}
+
+function addLegalBall(match) {
+  match.score.overs = calculateOvers(match.score.overs);
+  match.bowler.overs = calculateOvers(match.bowler.overs);
+}
+
+function removeLegalBall(match) {
+  match.score.overs = subtractOvers(match.score.overs);
+  match.bowler.overs = subtractOvers(match.bowler.overs);
+}
+
 function decimalOvers(oversValue) {
   const [overs = 0, balls = 0] = String(oversValue || "0.0").split(".").map(Number);
   return overs + balls / 6;
+}
+
+function recalculateMatch(match) {
+  const score = match.score;
+  const matchOvers = decimalOvers(score.overs);
+  const bowlerOvers = decimalOvers(match.bowler.overs);
+  const remainingRuns = Math.max(0, toNumber(match.target) - toNumber(score.runs));
+  const remainingOvers = Math.max(1, 20 - matchOvers);
+
+  score.runRate = matchOvers > 0 ? (toNumber(score.runs) / matchOvers).toFixed(2) : "0.00";
+  score.requiredRate = (remainingRuns / remainingOvers).toFixed(2);
+  match.bowler.economy = bowlerOvers > 0 ? (toNumber(match.bowler.runs) / bowlerOvers).toFixed(2) : "0.00";
+  match.lastUpdated = new Date().toISOString();
 }
 
 function Field({ label, value, onChange, type = "text", min }) {
@@ -141,6 +171,7 @@ export function AdminPage() {
   const [scoreboard, setScoreboard] = useState(() => cloneScoreboard(sampleScoreboard));
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
   const usingFirebase = useMemo(() => hasFirebaseConfig(), []);
 
   useEffect(() => {
@@ -250,38 +281,107 @@ export function AdminPage() {
     });
   }
 
+  async function updateDraftAndSave(updater, successMessage = "Saved to Firebase.") {
+    setStatus("Saving...");
+    setError("");
+    setIsAutoSaving(true);
+
+    const next = cloneScoreboard(scoreboard);
+    updater(next);
+    recalculateMatch(next.currentMatch);
+    setScoreboard(next);
+
+    try {
+      await updateScoreboard(next);
+      setStatus(successMessage);
+    } catch (err) {
+      setError(err.message);
+      setStatus("");
+    } finally {
+      setIsAutoSaving(false);
+    }
+  }
+
   function applyBall(ball) {
-    updateDraft((draft) => {
+    return updateDraftAndSave((draft) => {
       const match = draft.currentMatch;
       const score = match.score;
       const striker = match.batters[0];
       const bowler = match.bowler;
 
-      if (ball === "W") {
+      if (ball === "Wd") {
+        score.runs = toNumber(score.runs) + 1;
+        bowler.runs = toNumber(bowler.runs) + 1;
+      } else if (ball === "W") {
         score.wickets = toNumber(score.wickets) + 1;
         bowler.wickets = toNumber(bowler.wickets) + 1;
+        striker.balls = toNumber(striker.balls) + 1;
+        addLegalBall(match);
       } else {
         const runs = toNumber(ball);
         score.runs = toNumber(score.runs) + runs;
         striker.runs = toNumber(striker.runs) + runs;
         bowler.runs = toNumber(bowler.runs) + runs;
+        striker.balls = toNumber(striker.balls) + 1;
         if (runs === 4) striker.fours = toNumber(striker.fours) + 1;
         if (runs === 6) striker.sixes = toNumber(striker.sixes) + 1;
+        addLegalBall(match);
       }
 
+      striker.strikeRate = calculateStrikeRate(toNumber(striker.runs), toNumber(striker.balls));
+      match.recentBalls = [ball, ...(match.recentBalls || [])].slice(0, 6);
+    }, `Added ${ball}.`);
+  }
+
+  function adjustRun(amount) {
+    return updateDraftAndSave((draft) => {
+      const match = draft.currentMatch;
+      const score = match.score;
+      const striker = match.batters[0];
+      const bowler = match.bowler;
+
+      score.runs = Math.max(0, toNumber(score.runs) + amount);
+      striker.runs = Math.max(0, toNumber(striker.runs) + amount);
+      bowler.runs = Math.max(0, toNumber(bowler.runs) + amount);
+      striker.strikeRate = calculateStrikeRate(toNumber(striker.runs), toNumber(striker.balls));
+    }, amount > 0 ? "Added 1 run." : "Removed 1 run.");
+  }
+
+  function addWicket() {
+    return updateDraftAndSave((draft) => {
+      const match = draft.currentMatch;
+      const striker = match.batters[0];
+
+      match.score.wickets = toNumber(match.score.wickets) + 1;
+      match.bowler.wickets = toNumber(match.bowler.wickets) + 1;
       striker.balls = toNumber(striker.balls) + 1;
       striker.strikeRate = calculateStrikeRate(toNumber(striker.runs), toNumber(striker.balls));
-      score.overs = calculateOvers(score.overs);
+      addLegalBall(match);
+      match.recentBalls = ["W", ...(match.recentBalls || [])].slice(0, 6);
+    }, "Added wicket.");
+  }
 
-      const overs = decimalOvers(score.overs);
-      score.runRate = overs > 0 ? (toNumber(score.runs) / overs).toFixed(2) : "0.00";
-      const remainingRuns = Math.max(0, toNumber(match.target) - toNumber(score.runs));
-      const remainingOvers = Math.max(1, 20 - overs);
-      score.requiredRate = (remainingRuns / remainingOvers).toFixed(2);
-      bowler.economy = overs > 0 ? (toNumber(bowler.runs) / overs).toFixed(2) : "0.00";
-      match.recentBalls = [ball, ...(match.recentBalls || [])].slice(0, 6);
-      match.lastUpdated = new Date().toISOString();
-    });
+  function removeWicket() {
+    return updateDraftAndSave((draft) => {
+      const match = draft.currentMatch;
+      const striker = match.batters[0];
+
+      match.score.wickets = Math.max(0, toNumber(match.score.wickets) - 1);
+      match.bowler.wickets = Math.max(0, toNumber(match.bowler.wickets) - 1);
+
+      if ((match.recentBalls || [])[0] === "W") {
+        match.recentBalls = match.recentBalls.slice(1);
+        striker.balls = Math.max(0, toNumber(striker.balls) - 1);
+        striker.strikeRate = calculateStrikeRate(toNumber(striker.runs), toNumber(striker.balls));
+        removeLegalBall(match);
+      }
+    }, "Removed wicket.");
+  }
+
+  function updateMatchStatus(nextStatus) {
+    return updateDraftAndSave((draft) => {
+      draft.currentMatch.status = nextStatus;
+    }, `Status changed to ${nextStatus}.`);
   }
 
   async function saveScoreboard(event) {
@@ -291,7 +391,7 @@ export function AdminPage() {
 
     try {
       const next = cloneScoreboard(scoreboard);
-      next.currentMatch.lastUpdated = new Date().toISOString();
+      recalculateMatch(next.currentMatch);
       await updateScoreboard(next);
       setScoreboard(next);
       setStatus("Saved to Firebase.");
@@ -353,10 +453,55 @@ export function AdminPage() {
             <Field label="Run rate" value={match.score.runRate} onChange={(value) => updateScore("runRate", value)} />
             <Field label="Required rate" value={match.score.requiredRate} onChange={(value) => updateScore("requiredRate", value)} />
           </div>
+
+          <div className="status-controls">
+            <span>Match status</span>
+            {["LIVE", "INNINGS BREAK", "COMPLETED", "UPCOMING"].map((nextStatus) => (
+              <button
+                type="button"
+                key={nextStatus}
+                onClick={() => updateMatchStatus(nextStatus)}
+                className={match.status === nextStatus ? "active-status" : ""}
+                disabled={isAutoSaving}
+              >
+                {nextStatus}
+              </button>
+            ))}
+          </div>
+
+          <div className="score-actions">
+            <button type="button" onClick={() => adjustRun(1)} disabled={isAutoSaving}>
+              <Plus size={16} />
+              Add Run
+            </button>
+            <button type="button" onClick={() => adjustRun(-1)} disabled={isAutoSaving}>
+              <Minus size={16} />
+              Remove Run
+            </button>
+            <button type="button" className="danger-ball" onClick={addWicket} disabled={isAutoSaving}>
+              <Plus size={16} />
+              Add Wicket
+            </button>
+            <button type="button" className="danger-ball" onClick={removeWicket} disabled={isAutoSaving}>
+              <Minus size={16} />
+              Remove Wicket
+            </button>
+            <button type="button" onClick={() => applyBall("Wd")} disabled={isAutoSaving}>
+              <Zap size={16} />
+              Add Wide Ball
+            </button>
+          </div>
+
           <div className="quick-balls">
             <span>Quick ball</span>
-            {["0", "1", "2", "3", "4", "6", "W"].map((ball) => (
-              <button type="button" key={ball} onClick={() => applyBall(ball)} className={ball === "W" ? "danger-ball" : ""}>
+            {["0", "1", "2", "3", "4", "6", "W", "Wd"].map((ball) => (
+              <button
+                type="button"
+                key={ball}
+                onClick={() => ball === "W" ? addWicket() : applyBall(ball)}
+                className={ball === "W" ? "danger-ball" : ""}
+                disabled={isAutoSaving}
+              >
                 {ball}
               </button>
             ))}
@@ -448,7 +593,7 @@ export function AdminPage() {
             <Save size={17} />
             Save to Firebase
           </button>
-          <button className="secondary-button" type="button" onClick={() => applyBall("1")}>
+          <button className="secondary-button" type="button" onClick={() => applyBall("1")} disabled={isAutoSaving}>
             <Zap size={16} />
             Add 1 Run
           </button>

@@ -96,6 +96,8 @@ body {
 .primary-button,
 .secondary-button,
 .danger-button,
+.score-actions button,
+.status-controls button,
 .quick-balls button {
   display: inline-flex;
   align-items: center;
@@ -135,6 +137,11 @@ body {
   color: #be123c;
   border-color: #fecdd3;
   background: #fff1f2;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.62;
 }
 
 .notice,
@@ -600,7 +607,9 @@ code {
   margin-top: 10px;
 }
 
-.quick-balls {
+.quick-balls,
+.score-actions,
+.status-controls {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -608,14 +617,17 @@ code {
   margin-top: 14px;
 }
 
-.quick-balls span {
+.quick-balls span,
+.status-controls span {
   color: #475569;
   font-size: 0.78rem;
   font-weight: 900;
   text-transform: uppercase;
 }
 
-.quick-balls button {
+.quick-balls button,
+.score-actions button,
+.status-controls button {
   width: 38px;
   min-height: 38px;
   color: #0f766e;
@@ -623,7 +635,27 @@ code {
   background: #ecfdf5;
 }
 
-.quick-balls .danger-ball {
+.score-actions button {
+  width: auto;
+  padding: 8px 11px;
+}
+
+.status-controls button {
+  width: auto;
+  padding: 8px 11px;
+  color: #334155;
+  border-color: #d9e0ea;
+  background: #ffffff;
+}
+
+.status-controls .active-status {
+  color: #ffffff;
+  border-color: #0f766e;
+  background: #0f766e;
+}
+
+.quick-balls .danger-ball,
+.score-actions .danger-ball {
   color: #be123c;
   border-color: #fecdd3;
   background: #fff1f2;
