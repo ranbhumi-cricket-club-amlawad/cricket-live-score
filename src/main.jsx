@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { CalendarDays, Clock3, MapPin, Radio, RefreshCw, Shield, Trophy } from "lucide-react";
+import { CalendarDays, Clock3, MapPin, Radio, RefreshCw, Settings, Shield, Trophy } from "lucide-react";
+import { AdminPage } from "./Admin";
 import { fetchScoreboard, hasFirebaseConfig, refreshIntervalMs } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
 import "./styles.css";
@@ -148,10 +149,20 @@ function UpcomingMatches({ matches }) {
 }
 
 function App() {
+  const [route, setRoute] = useState(() => window.location.hash);
   const [scoreboard, setScoreboard] = useState(sampleScoreboard);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [error, setError] = useState("");
   const usingFirebase = useMemo(() => hasFirebaseConfig(), []);
+
+  useEffect(() => {
+    function handleRouteChange() {
+      setRoute(window.location.hash);
+    }
+
+    window.addEventListener("hashchange", handleRouteChange);
+    return () => window.removeEventListener("hashchange", handleRouteChange);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -184,6 +195,11 @@ function App() {
 
   const match = scoreboard.currentMatch || sampleScoreboard.currentMatch;
   const tournament = scoreboard.tournament || sampleScoreboard.tournament;
+  const isAdminRoute = route === "#/admin" || window.location.pathname.replace(/\/$/, "").endsWith("/admin");
+
+  if (isAdminRoute) {
+    return <AdminPage />;
+  }
 
   return (
     <main className="app-shell">
@@ -199,6 +215,10 @@ function App() {
           <RefreshCw size={16} />
           <span>{usingFirebase ? "Firebase sync" : "Demo data"}</span>
           <small>{lastRefresh ? formatDateTime(lastRefresh) : "Starting"}</small>
+          <a className="admin-link" href="#/admin">
+            <Settings size={15} />
+            Admin
+          </a>
         </div>
       </header>
 

@@ -23,3 +23,24 @@ export async function fetchScoreboard() {
 
   return response.json();
 }
+
+export async function updateScoreboard(scoreboard) {
+  if (!hasFirebaseConfig()) {
+    throw new Error("Firebase is not configured. Add VITE_FIREBASE_DATABASE_URL in .env.");
+  }
+
+  const baseUrl = databaseUrl.replace(/\/$/, "");
+  const response = await fetch(`${baseUrl}/${scoreboardPath}.json`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(scoreboard)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Firebase update failed: ${response.status}`);
+  }
+
+  return response.json();
+}

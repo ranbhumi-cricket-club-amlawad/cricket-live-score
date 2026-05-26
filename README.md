@@ -56,9 +56,37 @@ Run a demo updater that changes the score every 3 seconds:
 npm run live-demo
 ```
 
-In production, replace `scripts/live-demo-updater.js` with your real scorer/admin panel/API writer. Keep the public website read-only.
+Use `scripts/live-demo-updater.js` only for testing. For real scoring, use the admin screen below.
 
-## 4. Data Shape
+## 4. Admin Screen
+
+Open the admin screen:
+
+```text
+http://127.0.0.1:5173/#/admin
+```
+
+If Vite starts on another port, use that port instead.
+
+Hard-coded login:
+
+```text
+Username: admin
+Password: Score@2026
+```
+
+The admin page can update:
+
+- Tournament name, season, and venue
+- Live match status, target, score, wickets, overs, and rates
+- Batting and bowling team details
+- Batter and bowler player details
+- Recent balls
+- Upcoming matches
+
+Important: this hard-coded login is only a simple frontend gate. It is not real security because browser code can be inspected. The included `database.rules.json` allows public writes to `/scoreboard` so this demo admin panel can save directly from GitHub Pages. For a production tournament, use Firebase Authentication or a backend API before sharing the admin URL publicly.
+
+## 5. Data Shape
 
 Firebase path:
 
@@ -78,7 +106,7 @@ Main fields:
 - `currentMatch`: live match score, teams, batters, bowler, recent balls.
 - `upcomingMatches`: upcoming match list with teams, date, time, and venue.
 
-## 5. GitHub Setup
+## 6. GitHub Setup
 
 Create a repository, then run:
 
@@ -103,7 +131,7 @@ VITE_FIREBASE_DATABASE_URL=https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com
 3. Repository Settings > Pages > Source: GitHub Actions.
 4. Push to `main`; `.github/workflows/deploy-github-pages.yml` builds and publishes the site.
 
-## 6. Firebase Hosting Alternative
+## 7. Firebase Hosting Alternative
 
 If you prefer Firebase Hosting instead of GitHub Pages:
 
