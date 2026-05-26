@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "scoreboard": {
+      ".read": true,
+      ".write": "auth != null"
+    }
+  }
+}

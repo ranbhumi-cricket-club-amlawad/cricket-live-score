@@ -1,0 +1,113 @@
+{
+  "tournament": {
+    "name": "Premier Cricket Cup",
+    "season": "2026",
+    "venue": "Wankhede Stadium, Mumbai"
+  },
+  "currentMatch": {
+    "status": "LIVE",
+    "matchNo": "Match 7",
+    "battingTeamId": "falcons",
+    "bowlingTeamId": "titans",
+    "innings": "Falcons innings",
+    "target": 172,
+    "score": {
+      "runs": 148,
+      "wickets": 4,
+      "overs": "17.2",
+      "runRate": "8.53",
+      "requiredRate": "7.20"
+    },
+    "teams": {
+      "falcons": {
+        "name": "Mumbai Falcons",
+        "shortName": "MF",
+        "color": "#0f766e"
+      },
+      "titans": {
+        "name": "Delhi Titans",
+        "shortName": "DT",
+        "color": "#b45309"
+      }
+    },
+    "batters": [
+      {
+        "name": "Arjun Rao",
+        "role": "Striker",
+        "team": "Mumbai Falcons",
+        "runs": 62,
+        "balls": 38,
+        "fours": 7,
+        "sixes": 2,
+        "strikeRate": "163.16"
+      },
+      {
+        "name": "Karan Mehta",
+        "role": "Non-striker",
+        "team": "Mumbai Falcons",
+        "runs": 21,
+        "balls": 18,
+        "fours": 2,
+        "sixes": 0,
+        "strikeRate": "116.67"
+      }
+    ],
+    "bowler": {
+      "name": "Sameer Khan",
+      "team": "Delhi Titans",
+      "overs": "3.2",
+      "runs": 29,
+      "wickets": 1,
+      "economy": "8.70"
+    },
+    "recentBalls": ["1", "4", "0", "W", "2", "1"],
+    "lastUpdated": "2026-05-26T00:00:00.000Z"
+  },
+  "upcomingMatches": [
+    {
+      "id": "match-8",
+      "matchNo": "Match 8",
+      "date": "2026-06-01",
+      "time": "19:30",
+      "venue": "Eden Gardens, Kolkata",
+      "teamA": {
+        "name": "Kolkata Royals",
+        "shortName": "KR"
+      },
+      "teamB": {
+        "name": "Chennai Kings",
+        "shortName": "CK"
+      }
+    },
+    {
+      "id": "match-9",
+      "matchNo": "Match 9",
+      "date": "2026-06-02",
+      "time": "15:30",
+      "venue": "M. Chinnaswamy Stadium, Bengaluru",
+      "teamA": {
+        "name": "Bengaluru Stars",
+        "shortName": "BS"
+      },
+      "teamB": {
+        "name": "Hyderabad Hawks",
+        "shortName": "HH"
+      }
+    },
+    {
+      "id": "match-10",
+      "matchNo": "Match 10",
+      "date": "2026-06-03",
+      "time": "19:30",
+      "venue": "Narendra Modi Stadium, Ahmedabad",
+      "teamA": {
+        "name": "Gujarat Lions",
+        "shortName": "GL"
+      },
+      "teamB": {
+        "name": "Punjab Strikers",
+        "shortName": "PS"
+      }
+    }
+  ]
+}

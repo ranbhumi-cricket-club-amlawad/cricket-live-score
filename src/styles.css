@@ -1,0 +1,456 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f5f7fb;
+  color: #172033;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+.app-shell {
+  width: min(1160px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 40px;
+}
+
+.topbar,
+.live-panel,
+.match-card,
+.notice,
+.alert {
+  border: 1px solid #d9e0ea;
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(31, 41, 55, 0.08);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+}
+
+.brand,
+.sync-state,
+.eyebrow,
+.section-title,
+.fixture-meta span,
+.notice {
+  display: flex;
+  align-items: center;
+}
+
+.brand {
+  gap: 12px;
+}
+
+.brand > span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.brand strong,
+.score-block strong {
+  display: block;
+}
+
+.brand small,
+.sync-state small,
+.table-row small,
+.bowler-card span,
+.live-header p {
+  color: #5c6678;
+}
+
+.sync-state {
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  color: #334155;
+}
+
+.sync-state small {
+  width: 100%;
+  text-align: right;
+}
+
+.notice,
+.alert {
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+}
+
+.notice {
+  background: #ecfdf5;
+  border-color: #99f6e4;
+}
+
+.alert {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #9f1239;
+}
+
+.live-panel {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.live-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 22px;
+  padding: 28px;
+  background: linear-gradient(135deg, #123d50 0%, #0f766e 62%, #f59e0b 100%);
+  color: #ffffff;
+}
+
+.eyebrow {
+  gap: 8px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.live-header h1 {
+  margin: 12px 0 8px;
+  font-size: clamp(2rem, 4vw, 4rem);
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+.live-header p {
+  color: rgba(255, 255, 255, 0.82);
+  margin: 0;
+}
+
+.score-block {
+  min-width: 190px;
+  align-self: center;
+  text-align: right;
+}
+
+.score-block span {
+  font-weight: 700;
+  opacity: 0.84;
+}
+
+.score-block strong {
+  font-size: clamp(2.6rem, 6vw, 5.6rem);
+  line-height: 1;
+}
+
+.teams-row,
+.stats-grid,
+.players-grid {
+  padding: 22px 28px;
+}
+
+.teams-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #e6ebf2;
+}
+
+.team-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 6px 12px 6px 6px;
+  border: 1px solid #d9e0ea;
+  border-radius: 999px;
+  font-weight: 800;
+  background: #ffffff;
+}
+
+.team-badge {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: var(--team-color);
+  font-size: 0.72rem;
+}
+
+.versus {
+  color: #7b8495;
+  font-weight: 800;
+}
+
+.stats-grid,
+.bowler-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat {
+  min-height: 76px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e6ebf2;
+}
+
+.stat span {
+  display: block;
+  color: #64748b;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.stat strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 1.2rem;
+}
+
+.players-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+  gap: 18px;
+  padding-top: 0;
+}
+
+.table-panel h2,
+.section-title h2 {
+  margin: 0;
+}
+
+.table-panel h2 {
+  font-size: 1.05rem;
+  margin-bottom: 12px;
+}
+
+.score-table {
+  border: 1px solid #e6ebf2;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table-head,
+.table-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) repeat(5, 54px);
+  align-items: center;
+  gap: 8px;
+}
+
+.table-head {
+  min-height: 42px;
+  padding: 0 14px;
+  background: #eef3f8;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.table-row {
+  min-height: 64px;
+  padding: 10px 14px;
+  border-top: 1px solid #e6ebf2;
+}
+
+.table-row > span:not(:first-child),
+.table-head > span:not(:first-child) {
+  text-align: right;
+}
+
+.table-row strong,
+.table-row small {
+  display: block;
+}
+
+.bowler-card {
+  border: 1px solid #e6ebf2;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.bowler-card > div:first-child {
+  margin-bottom: 12px;
+}
+
+.bowler-card strong,
+.bowler-card span {
+  display: block;
+}
+
+.bowler-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.bowler-stats .stat {
+  min-height: 66px;
+}
+
+.bowler-stats .stat strong {
+  font-size: 1rem;
+}
+
+.recent-balls {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.recent-balls span {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8f5f2;
+  color: #0f766e;
+  font-weight: 900;
+}
+
+.recent-balls .wicket {
+  background: #ffe4e6;
+  color: #be123c;
+}
+
+.upcoming {
+  margin-top: 24px;
+}
+
+.section-title {
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.match-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.match-card {
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.match-card-top,
+.fixture-teams {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.match-card-top span {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.match-card-top strong {
+  color: #0f766e;
+}
+
+.fixture-teams {
+  margin: 16px 0;
+  min-height: 54px;
+  font-weight: 850;
+}
+
+.fixture-teams b {
+  color: #94a3b8;
+}
+
+.fixture-meta {
+  display: grid;
+  gap: 9px;
+  color: #5c6678;
+  font-size: 0.9rem;
+}
+
+.fixture-meta span {
+  gap: 7px;
+}
+
+code {
+  font-size: 0.92em;
+  background: rgba(15, 118, 110, 0.1);
+  padding: 2px 5px;
+  border-radius: 5px;
+}
+
+@media (max-width: 850px) {
+  .live-header,
+  .players-grid,
+  .match-list {
+    grid-template-columns: 1fr;
+  }
+
+  .score-block {
+    text-align: left;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    width: min(100% - 20px, 1160px);
+    padding-top: 10px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sync-state {
+    justify-content: flex-start;
+  }
+
+  .sync-state small {
+    text-align: left;
+  }
+
+  .live-header,
+  .teams-row,
+  .stats-grid,
+  .players-grid {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .stats-grid,
+  .bowler-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .table-head,
+  .table-row {
+    grid-template-columns: minmax(128px, 1fr) repeat(5, minmax(32px, 42px));
+    gap: 4px;
+    padding-left: 8px;
+    padding-right: 8px;
+    font-size: 0.86rem;
+  }
+}
