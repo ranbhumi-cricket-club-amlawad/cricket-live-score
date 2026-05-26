@@ -6,8 +6,56 @@ import { sampleScoreboard } from "./sampleData";
 const ADMIN_USERNAME = "admin";
 const ADMIN_PASSWORD = "Score@2026";
 
+function asArray(value, fallback = []) {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object") return Object.values(value);
+  return fallback;
+}
+
+function normalizeScoreboard(value) {
+  const source = value || {};
+  const sample = sampleScoreboard;
+  const currentMatch = source.currentMatch || {};
+  const sampleMatch = sample.currentMatch;
+
+  const normalized = {
+    tournament: {
+      ...sample.tournament,
+      ...(source.tournament || {})
+    },
+    currentMatch: {
+      ...sampleMatch,
+      ...currentMatch,
+      score: {
+        ...sampleMatch.score,
+        ...(currentMatch.score || {})
+      },
+      teams: {
+        ...sampleMatch.teams,
+        ...(currentMatch.teams || {})
+      },
+      batters: asArray(currentMatch.batters, sampleMatch.batters),
+      bowler: {
+        ...sampleMatch.bowler,
+        ...(currentMatch.bowler || {})
+      },
+      recentBalls: asArray(currentMatch.recentBalls, sampleMatch.recentBalls)
+    },
+    upcomingMatches: asArray(source.upcomingMatches, sample.upcomingMatches)
+  };
+
+  if (normalized.currentMatch.batters.length < 2) {
+    normalized.currentMatch.batters = [
+      ...normalized.currentMatch.batters,
+      ...sampleMatch.batters.slice(normalized.currentMatch.batters.length)
+    ];
+  }
+
+  return normalized;
+}
+
 function cloneScoreboard(value) {
-  return JSON.parse(JSON.stringify(value || sampleScoreboard));
+  return JSON.parse(JSON.stringify(normalizeScoreboard(value)));
 }
 
 function toNumber(value) {
