@@ -119,6 +119,8 @@ function LiveMatch({ match }) {
 }
 
 function UpcomingMatches({ matches }) {
+  const upcoming = Array.isArray(matches) ? matches : [];
+
   return (
     <section className="upcoming">
       <div className="section-title">
@@ -126,7 +128,12 @@ function UpcomingMatches({ matches }) {
         <h2>Upcoming Matches</h2>
       </div>
       <div className="match-list">
-        {matches?.map((match) => (
+        {upcoming.length === 0 ? (
+          <div className="empty-state">
+            No upcoming matches scheduled.
+          </div>
+        ) : null}
+        {upcoming.map((match) => (
           <article className="match-card" key={match.id}>
             <div className="match-card-top">
               <span>{match.matchNo}</span>

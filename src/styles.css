@@ -647,6 +647,24 @@ code {
   gap: 16px;
 }
 
+.empty-state {
+  min-height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  background: #f8fafc;
+  font-weight: 800;
+  text-align: center;
+  padding: 14px;
+}
+
+.match-list .empty-state {
+  grid-column: 1 / -1;
+}
+
 .sticky-save {
   position: fixed;
   right: 18px;

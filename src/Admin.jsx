@@ -41,7 +41,7 @@ function normalizeScoreboard(value) {
       },
       recentBalls: asArray(currentMatch.recentBalls, sampleMatch.recentBalls)
     },
-    upcomingMatches: asArray(source.upcomingMatches, sample.upcomingMatches)
+    upcomingMatches: asArray(source.upcomingMatches, [])
   };
 
   if (normalized.currentMatch.batters.length < 2) {
@@ -417,6 +417,11 @@ export function AdminPage() {
             </button>
           </div>
           <div className="upcoming-admin-list">
+            {scoreboard.upcomingMatches.length === 0 ? (
+              <div className="empty-state">
+                No upcoming matches added.
+              </div>
+            ) : null}
             {scoreboard.upcomingMatches.map((upcoming, index) => (
               <div className="mini-panel" key={upcoming.id}>
                 <div className="card-heading-row">
