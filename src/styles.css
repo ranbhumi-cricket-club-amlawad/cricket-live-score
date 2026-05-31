@@ -81,14 +81,12 @@ body {
 }
 
 .sync-state {
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 0;
   justify-content: flex-end;
   color: #334155;
 }
 
 .sync-state small {
-  width: 100%;
   text-align: right;
 }
 
@@ -390,6 +388,68 @@ button:disabled {
   color: #be123c;
 }
 
+.current-over-panel {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #e6ebf2;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.current-over-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.current-over-title h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.current-over-title span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.current-over-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.current-ball,
+.current-over-empty {
+  min-width: 74px;
+  min-height: 58px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  padding: 8px;
+  background: #ffffff;
+}
+
+.current-ball strong {
+  color: #0f766e;
+  font-size: 1rem;
+}
+
+.current-ball small,
+.current-over-empty {
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.current-ball.wicket strong {
+  color: #be123c;
+}
+
 .upcoming {
   margin-top: 24px;
 }
@@ -641,8 +701,8 @@ code {
 
 .event-groups {
   display: grid;
-  gap: 4px;
-  margin-top: 4px;
+  gap: 12px;
+  margin-top: 12px;
 }
 
 .mini-panel {
@@ -664,9 +724,10 @@ code {
 .status-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  column-gap: 12px;
+  row-gap: 12px;
   flex-wrap: wrap;
-  margin-top: 14px;
+  margin-top: 16px;
 }
 
 .quick-balls span,

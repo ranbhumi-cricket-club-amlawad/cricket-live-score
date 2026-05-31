@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { CalendarDays, Clock3, MapPin, Radio, RefreshCw, Settings, Shield, Trophy } from "lucide-react";
+import { CalendarDays, Clock3, MapPin, Radio, Shield, Trophy } from "lucide-react";
 import { AdminPage } from "./Admin";
 import { fetchScoreboard, hasFirebaseConfig, refreshIntervalMs } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
@@ -49,6 +49,68 @@ function PlayerList({ title, players }) {
     <div className="player-list">
       <span>{title}</span>
       <p>{list.join(", ")}</p>
+    </div>
+  );
+}
+
+function describeBallLabel(label) {
+  if (label === "W") return "Wicket";
+  if (label === "RO") return "Run out";
+  if (label === "Wd") return "Wide, 1 run";
+  if (label?.startsWith("Wd+")) return `Wide, ${Number(label.slice(3)) + 1} runs`;
+  if (label === "NB") return "No ball, 1 run";
+  if (label?.startsWith("NB+")) return `No ball, ${Number(label.slice(3)) + 1} runs`;
+  if (label?.startsWith("LB")) return `Leg bye, ${label.slice(2)} run${label.slice(2) === "1" ? "" : "s"}`;
+  if (label?.startsWith("B")) return `Bye, ${label.slice(1)} run${label.slice(1) === "1" ? "" : "s"}`;
+  if (label === "P5") return "Penalty, 5 runs";
+  return `${label} run${label === "1" ? "" : "s"}`;
+}
+
+function getCurrentOverEvents(match) {
+  const history = asArray(match.ballHistory);
+  if (history.length > 0) {
+    const current = [];
+    let legalBalls = 0;
+
+    for (const event of history) {
+      if (legalBalls >= 6) break;
+      current.push(event);
+      if (event.legal) legalBalls += 1;
+    }
+
+    return current.reverse();
+  }
+
+  return asArray(match.recentBalls)
+    .slice(0, 8)
+    .reverse()
+    .map((label) => ({
+      label,
+      display: describeBallLabel(label),
+      wicket: label === "W" || label === "RO"
+    }));
+}
+
+function CurrentOver({ match }) {
+  const events = getCurrentOverEvents(match);
+
+  return (
+    <div className="current-over-panel">
+      <div className="current-over-title">
+        <h3>Current Over</h3>
+        <span>{events.length} event{events.length === 1 ? "" : "s"}</span>
+      </div>
+      <div className="current-over-list">
+        {events.length === 0 ? (
+          <div className="current-over-empty">No balls recorded.</div>
+        ) : null}
+        {events.map((event, index) => (
+          <div className={event.wicket ? "current-ball wicket" : "current-ball"} key={`${event.label}-${index}`}>
+            <strong>{event.label}</strong>
+            <small>{event.display || describeBallLabel(event.label)}</small>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -137,6 +199,7 @@ function LiveMatch({ match }) {
               <span className={ball === "W" || ball === "RO" ? "wicket" : ""} key={`${ball}-${index}`}>{ball}</span>
             ))}
           </div>
+          <CurrentOver match={match} />
         </div>
       </div>
     </section>
@@ -246,13 +309,7 @@ function App() {
           </div>
         </div>
         <div className="sync-state">
-          <RefreshCw size={16} />
-          <span>{usingFirebase ? "Firebase sync" : "Demo data"}</span>
           <small>{lastRefresh ? formatDateTime(lastRefresh) : "Starting"}</small>
-          <a className="admin-link" href="#/admin">
-            <Settings size={15} />
-            Admin
-          </a>
         </div>
       </header>
 
