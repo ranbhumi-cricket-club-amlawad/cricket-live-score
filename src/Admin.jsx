@@ -388,6 +388,20 @@ export function AdminPage() {
     }, `${index === 0 ? "Striker" : "Non-striker"} updated.`);
   }
 
+  function setBatterOnStrike(index) {
+    if (index === 0) return updateDraftAndSave((draft) => {
+      draft.currentMatch.batters[0].role = "Striker";
+      draft.currentMatch.batters[1].role = "Non-striker";
+    }, "Striker confirmed.");
+    return updateDraftAndSave((draft) => {
+      const match = draft.currentMatch;
+      const striker = match.batters[index];
+      const nonStriker = match.batters[0];
+      match.batters[0] = { ...striker, role: "Striker" };
+      match.batters[index] = { ...nonStriker, role: "Non-striker" };
+    }, `${scoreboard.currentMatch.batters[index]?.name || "Player"} is on strike.`);
+  }
+
   function selectBowler(playerName) {
     if (!playerName) return;
     return updateDraftAndSave((draft) => {
@@ -530,6 +544,8 @@ export function AdminPage() {
           label: event.label,
           display: event.display,
           runs: event.totalRuns,
+          batterRuns: event.batterRuns,
+          striker: striker.name,
           legal: event.legal,
           wicket: Boolean(event.wicket),
           time: new Date().toISOString()
@@ -571,6 +587,7 @@ export function AdminPage() {
       striker.strikeRate = calculateStrikeRate(toNumber(striker.runs), toNumber(striker.balls));
       const overCompleted = addLegalBall(match);
       match.recentBalls = ["W", ...(match.recentBalls || [])].slice(0, 6);
+      match.ballHistory = [{ label: "W", display: "Wicket", runs: 0, batterRuns: 0, striker: striker.name, legal: true, wicket: true, time: new Date().toISOString() }, ...(match.ballHistory || [])].slice(0, 30);
       if (overCompleted) {
         switchStrike(match);
       }
@@ -587,6 +604,7 @@ export function AdminPage() {
 
       if ((match.recentBalls || [])[0] === "W") {
         match.recentBalls = match.recentBalls.slice(1);
+        match.ballHistory = (match.ballHistory || []).slice(1);
         striker.balls = Math.max(0, toNumber(striker.balls) - 1);
         striker.strikeRate = calculateStrikeRate(toNumber(striker.runs), toNumber(striker.balls));
         removeLegalBall(match);
@@ -794,8 +812,11 @@ export function AdminPage() {
           </div>
           <div className="team-edit-grid">
             {match.batters.map((batter, index) => (
-              <div className="mini-panel" key={`${batter.name}-${index}`}>
-                <h3>{index === 0 ? "Striker" : "Non-striker"}</h3>
+              <div className={index === 0 ? "mini-panel striker-admin-panel" : "mini-panel"} key={`${batter.name}-${index}`}>
+                <div className="mini-panel-title">
+                  <h3>{index === 0 ? "Striker" : "Non-striker"}</h3>
+                  {index === 0 ? <span className="strike-badge">On strike</span> : <button type="button" className="strike-button" onClick={() => setBatterOnStrike(index)} disabled={isAutoSaving}>Set on strike</button>}
+                </div>
                 <Field label="Name" value={batter.name} onChange={(value) => updateBatter(index, "name", value)} />
                 <Field label="Team" value={batter.team} onChange={(value) => updateBatter(index, "team", value)} />
                 <Field label="Runs" type="number" min="0" value={batter.runs} onChange={(value) => updateBatter(index, "runs", value)} />

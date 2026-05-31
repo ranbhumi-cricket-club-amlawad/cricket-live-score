@@ -338,6 +338,23 @@ button:disabled {
   display: block;
 }
 
+.active-striker-row {
+  background: #f0fdfa;
+}
+
+.strike-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #0f766e;
+  background: #ccfbf1;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .bowler-card {
   border: 1px solid #e6ebf2;
   border-radius: 8px;
@@ -390,7 +407,7 @@ button:disabled {
 
 .current-over-panel {
   margin-top: 14px;
-  padding: 12px;
+  padding: 10px 12px;
   border: 1px solid #e6ebf2;
   border-radius: 8px;
   background: #f8fafc;
@@ -406,7 +423,7 @@ button:disabled {
 
 .current-over-title h3 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
 }
 
 .current-over-title span {
@@ -418,35 +435,29 @@ button:disabled {
 .current-over-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
-.current-ball,
-.current-over-empty {
-  min-width: 74px;
-  min-height: 58px;
+.current-ball {
+  width: 32px;
+  height: 32px;
   display: grid;
-  align-content: center;
-  gap: 3px;
-  border: 1px solid #d9e0ea;
-  border-radius: 8px;
-  padding: 8px;
-  background: #ffffff;
-}
-
-.current-ball strong {
+  place-items: center;
+  border-radius: 50%;
   color: #0f766e;
-  font-size: 1rem;
+  background: #dff7ef;
+  font-size: 0.9rem;
+  font-weight: 900;
 }
 
-.current-ball small,
 .current-over-empty {
   color: #64748b;
   font-size: 0.78rem;
   line-height: 1.25;
 }
 
-.current-ball.wicket strong {
+.current-ball.wicket {
+  background: #ffe4e6;
   color: #be123c;
 }
 
@@ -713,6 +724,46 @@ code {
 .mini-panel h3 {
   margin: 0 0 12px;
   font-size: 0.95rem;
+}
+
+.mini-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mini-panel-title h3 {
+  margin: 0;
+}
+
+.striker-admin-panel {
+  border-top-color: #99f6e4;
+}
+
+.strike-badge,
+.strike-button {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.strike-badge {
+  color: #0f766e;
+  background: #ccfbf1;
+}
+
+.strike-button {
+  border: 1px solid #b2dfd6;
+  color: #0f766e;
+  background: #ecfdf5;
 }
 
 .mini-panel .field + .field {

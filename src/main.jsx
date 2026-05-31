@@ -53,42 +53,47 @@ function PlayerList({ title, players }) {
   );
 }
 
-function describeBallLabel(label) {
-  if (label === "W") return "Wicket";
-  if (label === "RO") return "Run out";
-  if (label === "Wd") return "Wide, 1 run";
-  if (label?.startsWith("Wd+")) return `Wide, ${Number(label.slice(3)) + 1} runs`;
-  if (label === "NB") return "No ball, 1 run";
-  if (label?.startsWith("NB+")) return `No ball, ${Number(label.slice(3)) + 1} runs`;
-  if (label?.startsWith("LB")) return `Leg bye, ${label.slice(2)} run${label.slice(2) === "1" ? "" : "s"}`;
-  if (label?.startsWith("B")) return `Bye, ${label.slice(1)} run${label.slice(1) === "1" ? "" : "s"}`;
-  if (label === "P5") return "Penalty, 5 runs";
-  return `${label} run${label === "1" ? "" : "s"}`;
-}
-
 function getCurrentOverEvents(match) {
   const history = asArray(match.ballHistory);
+  const toScoreLabel = (event) => {
+    const label = String(event?.label ?? event ?? "");
+    if (event?.wicket || label === "W" || label === "RO") return { label: "W", wicket: true };
+    if (event?.runs !== undefined) return { label: String(event.runs), wicket: false };
+    if (label === "Wd" || label === "NB") return { label: "1", wicket: false };
+    if (label.startsWith("Wd+")) return { label: String(Number(label.slice(3)) + 1), wicket: false };
+    if (label.startsWith("NB+")) return { label: String(Number(label.slice(3)) + 1), wicket: false };
+    if (label.startsWith("LB")) return { label: label.slice(2), wicket: false };
+    if (label.startsWith("B")) return { label: label.slice(1), wicket: false };
+    if (label === "P5") return { label: "5", wicket: false };
+    return { label, wicket: false };
+  };
+
   if (history.length > 0) {
     const current = [];
+    const currentLegalBalls = Number(String(match.score?.overs || "0.0").split(".")[1] || 0);
+    const targetLegalBalls = currentLegalBalls === 0 ? 6 : currentLegalBalls;
     let legalBalls = 0;
 
-    for (const event of history) {
-      if (legalBalls >= 6) break;
-      current.push(event);
-      if (event.legal) legalBalls += 1;
+    if (currentLegalBalls === 0 && history[0]?.legal === false) {
+      for (const event of history) {
+        if (event.legal) break;
+        current.push(event);
+      }
+    } else {
+      for (const event of history) {
+        if (legalBalls >= targetLegalBalls && event.legal) break;
+        current.push(event);
+        if (event.legal) legalBalls += 1;
+      }
     }
 
-    return current.reverse();
+    return current.reverse().map(toScoreLabel);
   }
 
   return asArray(match.recentBalls)
     .slice(0, 8)
     .reverse()
-    .map((label) => ({
-      label,
-      display: describeBallLabel(label),
-      wicket: label === "W" || label === "RO"
-    }));
+    .map((label) => toScoreLabel({ label, wicket: label === "W" || label === "RO" }));
 }
 
 function CurrentOver({ match }) {
@@ -98,17 +103,14 @@ function CurrentOver({ match }) {
     <div className="current-over-panel">
       <div className="current-over-title">
         <h3>Current Over</h3>
-        <span>{events.length} event{events.length === 1 ? "" : "s"}</span>
+        <span>{match.score?.overs || "0.0"} ov</span>
       </div>
       <div className="current-over-list">
         {events.length === 0 ? (
-          <div className="current-over-empty">No balls recorded.</div>
+          <div className="current-over-empty">No balls</div>
         ) : null}
         {events.map((event, index) => (
-          <div className={event.wicket ? "current-ball wicket" : "current-ball"} key={`${event.label}-${index}`}>
-            <strong>{event.label}</strong>
-            <small>{event.display || describeBallLabel(event.label)}</small>
-          </div>
+          <span className={event.wicket ? "current-ball wicket" : "current-ball"} key={`${event.label}-${index}`}>{event.label}</span>
         ))}
       </div>
     </div>
@@ -164,10 +166,10 @@ function LiveMatch({ match }) {
               <span>6s</span>
               <span>SR</span>
             </div>
-            {match.batters?.map((player) => (
-              <div className="table-row" key={player.name}>
+            {match.batters?.map((player, index) => (
+              <div className={index === 0 ? "table-row active-striker-row" : "table-row"} key={player.name}>
                 <span>
-                  <strong>{player.name}</strong>
+                  <strong>{player.name}{index === 0 ? <span className="strike-indicator">On strike</span> : null}</strong>
                   <small>{player.role} · {player.team}</small>
                 </span>
                 <span>{player.runs}</span>
@@ -193,11 +195,6 @@ function LiveMatch({ match }) {
               <Stat label="Wkts" value={match.bowler?.wickets} />
               <Stat label="Econ" value={match.bowler?.economy} />
             </div>
-          </div>
-          <div className="recent-balls">
-            {match.recentBalls?.map((ball, index) => (
-              <span className={ball === "W" || ball === "RO" ? "wicket" : ""} key={`${ball}-${index}`}>{ball}</span>
-            ))}
           </div>
           <CurrentOver match={match} />
         </div>
