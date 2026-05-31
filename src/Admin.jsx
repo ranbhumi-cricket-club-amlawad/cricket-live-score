@@ -5,6 +5,46 @@ import { sampleScoreboard } from "./sampleData";
 
 const ADMIN_USERNAME = "admin";
 const ADMIN_PASSWORD = "Score@2026";
+const DEFAULT_EXTRAS = {
+  wides: 0,
+  noBalls: 0,
+  byes: 0,
+  legByes: 0,
+  penalty: 0,
+  total: 0
+};
+
+const BALL_EVENTS = [
+  { label: "0", display: "Dot", totalRuns: 0, batterRuns: 0, legal: true, strikerBall: true, bowlerRuns: 0 },
+  { label: "1", display: "1 Run", totalRuns: 1, batterRuns: 1, legal: true, strikerBall: true, bowlerRuns: 1 },
+  { label: "2", display: "2 Runs", totalRuns: 2, batterRuns: 2, legal: true, strikerBall: true, bowlerRuns: 2 },
+  { label: "3", display: "3 Runs", totalRuns: 3, batterRuns: 3, legal: true, strikerBall: true, bowlerRuns: 3 },
+  { label: "4", display: "4", totalRuns: 4, batterRuns: 4, legal: true, strikerBall: true, bowlerRuns: 4 },
+  { label: "5", display: "5 Runs", totalRuns: 5, batterRuns: 5, legal: true, strikerBall: true, bowlerRuns: 5 },
+  { label: "6", display: "6", totalRuns: 6, batterRuns: 6, legal: true, strikerBall: true, bowlerRuns: 6 },
+  { label: "W", display: "Wicket", totalRuns: 0, batterRuns: 0, legal: true, strikerBall: true, bowlerRuns: 0, wicket: true, bowlerWicket: true },
+  { label: "RO", display: "Run Out", totalRuns: 0, batterRuns: 0, legal: true, strikerBall: true, bowlerRuns: 0, wicket: true, bowlerWicket: false },
+  { label: "Wd", display: "Wide", totalRuns: 1, batterRuns: 0, legal: false, strikerBall: false, bowlerRuns: 1, extraType: "wides", extraRuns: 1 },
+  { label: "Wd+1", display: "Wide +1", totalRuns: 2, batterRuns: 0, legal: false, strikerBall: false, bowlerRuns: 2, extraType: "wides", extraRuns: 2 },
+  { label: "Wd+2", display: "Wide +2", totalRuns: 3, batterRuns: 0, legal: false, strikerBall: false, bowlerRuns: 3, extraType: "wides", extraRuns: 3 },
+  { label: "Wd+3", display: "Wide +3", totalRuns: 4, batterRuns: 0, legal: false, strikerBall: false, bowlerRuns: 4, extraType: "wides", extraRuns: 4 },
+  { label: "Wd+4", display: "Wide +4", totalRuns: 5, batterRuns: 0, legal: false, strikerBall: false, bowlerRuns: 5, extraType: "wides", extraRuns: 5 },
+  { label: "NB", display: "No Ball", totalRuns: 1, batterRuns: 0, legal: false, strikerBall: false, bowlerRuns: 1, extraType: "noBalls", extraRuns: 1, freeHit: true },
+  { label: "NB+1", display: "No Ball +1", totalRuns: 2, batterRuns: 1, legal: false, strikerBall: false, bowlerRuns: 2, extraType: "noBalls", extraRuns: 1, freeHit: true },
+  { label: "NB+2", display: "No Ball +2", totalRuns: 3, batterRuns: 2, legal: false, strikerBall: false, bowlerRuns: 3, extraType: "noBalls", extraRuns: 1, freeHit: true },
+  { label: "NB+3", display: "No Ball +3", totalRuns: 4, batterRuns: 3, legal: false, strikerBall: false, bowlerRuns: 4, extraType: "noBalls", extraRuns: 1, freeHit: true },
+  { label: "NB+4", display: "No Ball +4", totalRuns: 5, batterRuns: 4, legal: false, strikerBall: false, bowlerRuns: 5, extraType: "noBalls", extraRuns: 1, freeHit: true },
+  { label: "NB+6", display: "No Ball +6", totalRuns: 7, batterRuns: 6, legal: false, strikerBall: false, bowlerRuns: 7, extraType: "noBalls", extraRuns: 1, freeHit: true },
+  { label: "B1", display: "Bye 1", totalRuns: 1, batterRuns: 0, legal: true, strikerBall: true, bowlerRuns: 0, extraType: "byes", extraRuns: 1 },
+  { label: "B2", display: "Bye 2", totalRuns: 2, batterRuns: 0, legal: true, strikerBall: true, bowlerRuns: 0, extraType: "byes", extraRuns: 2 },
+  { label: "B3", display: "Bye 3", totalRuns: 3, batterRuns: 0, legal: true, strikerBall: true, bowlerRuns: 0, extraType: "byes", extraRuns: 3 },
+  { label: "B4", display: "Bye 4", totalRuns: 4, batterRuns: 0, legal: true, strikerBall: true, bowlerRuns: 0, extraType: "byes", extraRuns: 4 },
+  { label: "LB1", display: "Leg Bye 1", totalRuns: 1, batterRuns: 0, legal: true, strikerBall: true, bowlerRuns: 0, extraType: "legByes", extraRuns: 1 },
+  { label: "LB2", display: "Leg Bye 2", totalRuns: 2, batterRuns: 0, legal: true, strikerBall: true, bowlerRuns: 0, extraType: "legByes", extraRuns: 2 },
+  { label: "LB3", display: "Leg Bye 3", totalRuns: 3, batterRuns: 0, legal: true, strikerBall: true, bowlerRuns: 0, extraType: "legByes", extraRuns: 3 },
+  { label: "LB4", display: "Leg Bye 4", totalRuns: 4, batterRuns: 0, legal: true, strikerBall: true, bowlerRuns: 0, extraType: "legByes", extraRuns: 4 },
+  { label: "P5", display: "Penalty 5", totalRuns: 5, batterRuns: 0, legal: false, strikerBall: false, bowlerRuns: 0, extraType: "penalty", extraRuns: 5 }
+];
 
 function asArray(value, fallback = []) {
   if (Array.isArray(value)) return value;
@@ -12,11 +52,63 @@ function asArray(value, fallback = []) {
   return fallback;
 }
 
+function normalizePlayerList(value, fallback = []) {
+  return asArray(value, fallback)
+    .map((player) => typeof player === "string" ? player : player?.name)
+    .filter(Boolean);
+}
+
+function splitPlayers(value) {
+  return String(value || "")
+    .split(/[\n,]/)
+    .map((player) => player.trim())
+    .filter(Boolean);
+}
+
+function normalizeExtras(value) {
+  const extras = { ...DEFAULT_EXTRAS, ...(value || {}) };
+  extras.total = toNumber(extras.wides) + toNumber(extras.noBalls) + toNumber(extras.byes) + toNumber(extras.legByes) + toNumber(extras.penalty);
+  return extras;
+}
+
+function makePlayerStats(name, team, role = "Player") {
+  return {
+    name,
+    role,
+    team,
+    runs: 0,
+    balls: 0,
+    fours: 0,
+    sixes: 0,
+    strikeRate: "0.00"
+  };
+}
+
 function normalizeScoreboard(value) {
   const source = value || {};
   const sample = sampleScoreboard;
   const currentMatch = source.currentMatch || {};
   const sampleMatch = sample.currentMatch;
+  const sourceTeams = currentMatch.teams || {};
+  const teams = {
+    ...sampleMatch.teams,
+    ...sourceTeams
+  };
+  const batters = asArray(currentMatch.batters, sampleMatch.batters);
+  const bowler = {
+    ...sampleMatch.bowler,
+    ...(currentMatch.bowler || {})
+  };
+
+  Object.keys(teams).forEach((teamId) => {
+    const team = teams[teamId];
+    const samplePlayers = normalizePlayerList(sampleMatch.teams[teamId]?.players, []);
+    const derivedPlayers = [
+      ...batters.filter((player) => player.team === team.name).map((player) => player.name),
+      bowler.team === team.name ? bowler.name : null
+    ].filter(Boolean);
+    team.players = normalizePlayerList(team.players, [...samplePlayers, ...derivedPlayers]);
+  });
 
   const normalized = {
     tournament: {
@@ -30,18 +122,23 @@ function normalizeScoreboard(value) {
         ...sampleMatch.score,
         ...(currentMatch.score || {})
       },
-      teams: {
-        ...sampleMatch.teams,
-        ...(currentMatch.teams || {})
-      },
-      batters: asArray(currentMatch.batters, sampleMatch.batters),
-      bowler: {
-        ...sampleMatch.bowler,
-        ...(currentMatch.bowler || {})
-      },
+      teams,
+      batters,
+      bowler,
+      extras: normalizeExtras(currentMatch.extras || sampleMatch.extras),
       recentBalls: asArray(currentMatch.recentBalls, sampleMatch.recentBalls)
     },
-    upcomingMatches: asArray(source.upcomingMatches, [])
+    upcomingMatches: asArray(source.upcomingMatches, []).map((match) => ({
+      ...match,
+      teamA: {
+        ...(match.teamA || {}),
+        players: normalizePlayerList(match.teamA?.players, [])
+      },
+      teamB: {
+        ...(match.teamB || {}),
+        players: normalizePlayerList(match.teamB?.players, [])
+      }
+    }))
   };
 
   if (normalized.currentMatch.batters.length < 2) {
@@ -81,8 +178,10 @@ function subtractOvers(currentOvers) {
 }
 
 function addLegalBall(match) {
+  const beforeBalls = Number(String(match.score.overs || "0.0").split(".")[1] || 0);
   match.score.overs = calculateOvers(match.score.overs);
   match.bowler.overs = calculateOvers(match.bowler.overs);
+  return beforeBalls === 5;
 }
 
 function removeLegalBall(match) {
@@ -97,6 +196,7 @@ function decimalOvers(oversValue) {
 
 function recalculateMatch(match) {
   const score = match.score;
+  match.extras = normalizeExtras(match.extras);
   const matchOvers = decimalOvers(score.overs);
   const bowlerOvers = decimalOvers(match.bowler.overs);
   const remainingRuns = Math.max(0, toNumber(match.target) - toNumber(score.runs));
@@ -106,6 +206,17 @@ function recalculateMatch(match) {
   score.requiredRate = (remainingRuns / remainingOvers).toFixed(2);
   match.bowler.economy = bowlerOvers > 0 ? (toNumber(match.bowler.runs) / bowlerOvers).toFixed(2) : "0.00";
   match.lastUpdated = new Date().toISOString();
+}
+
+function switchStrike(match) {
+  match.batters = [match.batters[1], match.batters[0]];
+  match.batters[0].role = "Striker";
+  match.batters[1].role = "Non-striker";
+}
+
+function shouldSwitchStrike(event) {
+  const completedRuns = event.extraType === "wides" ? Math.max(0, toNumber(event.totalRuns) - 1) : toNumber(event.totalRuns);
+  return completedRuns % 2 === 1;
 }
 
 function Field({ label, value, onChange, type = "text", min }) {
@@ -122,6 +233,20 @@ function TextAreaField({ label, value, onChange }) {
     <label className="field field-wide">
       <span>{label}</span>
       <textarea value={value ?? ""} onChange={(event) => onChange(event.target.value)} rows={3} />
+    </label>
+  );
+}
+
+function SelectField({ label, value, options, onChange }) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <select value={value ?? ""} onChange={(event) => onChange(event.target.value)}>
+        <option value="">Select player</option>
+        {options.map((option) => (
+          <option value={option} key={option}>{option}</option>
+        ))}
+      </select>
     </label>
   );
 }
@@ -235,6 +360,52 @@ export function AdminPage() {
     });
   }
 
+  function updateTeamPlayers(teamId, value) {
+    updateDraft((draft) => {
+      draft.currentMatch.teams[teamId].players = splitPlayers(value);
+    });
+  }
+
+  function getPlayerStats(name, team, role, existingPlayers = []) {
+    return existingPlayers.find((player) => player.name === name) || makePlayerStats(name, team, role);
+  }
+
+  function selectBatter(index, playerName) {
+    if (!playerName) return;
+    return updateDraftAndSave((draft) => {
+      const match = draft.currentMatch;
+      const battingTeam = match.teams[match.battingTeamId];
+      const role = index === 0 ? "Striker" : "Non-striker";
+      const player = getPlayerStats(playerName, battingTeam.name, role, match.batters);
+
+      match.batters[index] = {
+        ...player,
+        name: playerName,
+        team: battingTeam.name,
+        role,
+        strikeRate: calculateStrikeRate(toNumber(player.runs), toNumber(player.balls))
+      };
+    }, `${index === 0 ? "Striker" : "Non-striker"} updated.`);
+  }
+
+  function selectBowler(playerName) {
+    if (!playerName) return;
+    return updateDraftAndSave((draft) => {
+      const match = draft.currentMatch;
+      const bowlingTeam = match.teams[match.bowlingTeamId];
+      const existingBowler = match.bowler?.name === playerName ? match.bowler : {};
+
+      match.bowler = {
+        name: playerName,
+        team: bowlingTeam.name,
+        overs: existingBowler.overs || "0.0",
+        runs: toNumber(existingBowler.runs),
+        wickets: toNumber(existingBowler.wickets),
+        economy: existingBowler.economy || "0.00"
+      };
+    }, "Bowler updated.");
+  }
+
   function updateBatter(index, field, value) {
     updateDraft((draft) => {
       const batter = draft.currentMatch.batters[index];
@@ -254,10 +425,17 @@ export function AdminPage() {
       const match = draft.upcomingMatches[index];
       if (path.includes(".")) {
         const [parent, child] = path.split(".");
+        match[parent] = match[parent] || {};
         match[parent][child] = value;
       } else {
         match[path] = value;
       }
+    });
+  }
+
+  function updateUpcomingPlayers(index, teamKey, value) {
+    updateDraft((draft) => {
+      draft.upcomingMatches[index][teamKey].players = splitPlayers(value);
     });
   }
 
@@ -269,8 +447,8 @@ export function AdminPage() {
         date: "",
         time: "",
         venue: "",
-        teamA: { name: "", shortName: "" },
-        teamB: { name: "", shortName: "" }
+        teamA: { name: "", shortName: "", players: [] },
+        teamB: { name: "", shortName: "", players: [] }
       });
     });
   }
@@ -302,35 +480,70 @@ export function AdminPage() {
     }
   }
 
-  function applyBall(ball) {
+  function applyBall(eventOrLabel) {
     return updateDraftAndSave((draft) => {
+      const event = typeof eventOrLabel === "string"
+        ? BALL_EVENTS.find((item) => item.label === eventOrLabel)
+        : eventOrLabel;
+      if (!event) return;
+
       const match = draft.currentMatch;
       const score = match.score;
       const striker = match.batters[0];
       const bowler = match.bowler;
+      let overCompleted = false;
 
-      if (ball === "Wd") {
-        score.runs = toNumber(score.runs) + 1;
-        bowler.runs = toNumber(bowler.runs) + 1;
-      } else if (ball === "W") {
+      score.runs = toNumber(score.runs) + toNumber(event.totalRuns);
+      bowler.runs = Math.max(0, toNumber(bowler.runs) + toNumber(event.bowlerRuns));
+
+      if (event.extraType) {
+        match.extras = normalizeExtras(match.extras);
+        match.extras[event.extraType] = toNumber(match.extras[event.extraType]) + toNumber(event.extraRuns);
+      }
+
+      if (event.batterRuns) {
+        striker.runs = toNumber(striker.runs) + toNumber(event.batterRuns);
+        if (event.batterRuns === 4) striker.fours = toNumber(striker.fours) + 1;
+        if (event.batterRuns === 6) striker.sixes = toNumber(striker.sixes) + 1;
+      }
+
+      if (event.wicket) {
         score.wickets = toNumber(score.wickets) + 1;
-        bowler.wickets = toNumber(bowler.wickets) + 1;
+        if (event.bowlerWicket) {
+          bowler.wickets = toNumber(bowler.wickets) + 1;
+        }
+      }
+
+      if (event.strikerBall) {
         striker.balls = toNumber(striker.balls) + 1;
-        addLegalBall(match);
-      } else {
-        const runs = toNumber(ball);
-        score.runs = toNumber(score.runs) + runs;
-        striker.runs = toNumber(striker.runs) + runs;
-        bowler.runs = toNumber(bowler.runs) + runs;
-        striker.balls = toNumber(striker.balls) + 1;
-        if (runs === 4) striker.fours = toNumber(striker.fours) + 1;
-        if (runs === 6) striker.sixes = toNumber(striker.sixes) + 1;
-        addLegalBall(match);
+      }
+
+      if (event.legal) {
+        overCompleted = addLegalBall(match);
       }
 
       striker.strikeRate = calculateStrikeRate(toNumber(striker.runs), toNumber(striker.balls));
-      match.recentBalls = [ball, ...(match.recentBalls || [])].slice(0, 6);
-    }, `Added ${ball}.`);
+      match.freeHit = Boolean(event.freeHit);
+      match.recentBalls = [event.label, ...(match.recentBalls || [])].slice(0, 6);
+      match.ballHistory = [
+        {
+          label: event.label,
+          display: event.display,
+          runs: event.totalRuns,
+          legal: event.legal,
+          wicket: Boolean(event.wicket),
+          time: new Date().toISOString()
+        },
+        ...(match.ballHistory || [])
+      ].slice(0, 30);
+
+      if (shouldSwitchStrike(event)) {
+        switchStrike(match);
+      }
+      if (overCompleted) {
+        switchStrike(match);
+      }
+    }, `Recorded ${typeof eventOrLabel === "string" ? eventOrLabel : eventOrLabel.label}.`);
   }
 
   function adjustRun(amount) {
@@ -356,8 +569,11 @@ export function AdminPage() {
       match.bowler.wickets = toNumber(match.bowler.wickets) + 1;
       striker.balls = toNumber(striker.balls) + 1;
       striker.strikeRate = calculateStrikeRate(toNumber(striker.runs), toNumber(striker.balls));
-      addLegalBall(match);
+      const overCompleted = addLegalBall(match);
       match.recentBalls = ["W", ...(match.recentBalls || [])].slice(0, 6);
+      if (overCompleted) {
+        switchStrike(match);
+      }
     }, "Added wicket.");
   }
 
@@ -407,6 +623,10 @@ export function AdminPage() {
 
   const match = scoreboard.currentMatch;
   const teams = match.teams;
+  const battingTeam = teams[match.battingTeamId];
+  const bowlingTeam = teams[match.bowlingTeamId];
+  const battingPlayers = normalizePlayerList(battingTeam?.players, match.batters.map((player) => player.name));
+  const bowlingPlayers = normalizePlayerList(bowlingTeam?.players, [match.bowler.name]);
 
   return (
     <main className="admin-shell">
@@ -453,6 +673,14 @@ export function AdminPage() {
             <Field label="Run rate" value={match.score.runRate} onChange={(value) => updateScore("runRate", value)} />
             <Field label="Required rate" value={match.score.requiredRate} onChange={(value) => updateScore("requiredRate", value)} />
           </div>
+          <div className="extras-strip">
+            <span>Extras: {match.extras?.total || 0}</span>
+            <span>Wd {match.extras?.wides || 0}</span>
+            <span>NB {match.extras?.noBalls || 0}</span>
+            <span>B {match.extras?.byes || 0}</span>
+            <span>LB {match.extras?.legByes || 0}</span>
+            <span>{match.freeHit ? "Free hit active" : "Free hit inactive"}</span>
+          </div>
 
           <div className="status-controls">
             <span>Match status</span>
@@ -492,18 +720,33 @@ export function AdminPage() {
             </button>
           </div>
 
-          <div className="quick-balls">
-            <span>Quick ball</span>
-            {["0", "1", "2", "3", "4", "6", "W", "Wd"].map((ball) => (
-              <button
-                type="button"
-                key={ball}
-                onClick={() => ball === "W" ? addWicket() : applyBall(ball)}
-                className={ball === "W" ? "danger-ball" : ""}
-                disabled={isAutoSaving}
-              >
-                {ball}
-              </button>
+          <div className="event-groups">
+            {[
+              ["Legal ball", ["0", "1", "2", "3", "4", "5", "6", "W", "RO"]],
+              ["Wide", ["Wd", "Wd+1", "Wd+2", "Wd+3", "Wd+4"]],
+              ["No ball", ["NB", "NB+1", "NB+2", "NB+3", "NB+4", "NB+6"]],
+              ["Byes", ["B1", "B2", "B3", "B4"]],
+              ["Leg byes", ["LB1", "LB2", "LB3", "LB4"]],
+              ["Penalty", ["P5"]]
+            ].map(([groupName, eventLabels]) => (
+              <div className="quick-balls" key={groupName}>
+                <span>{groupName}</span>
+                {eventLabels.map((eventLabel) => {
+                  const event = BALL_EVENTS.find((item) => item.label === eventLabel);
+                  return (
+                    <button
+                      type="button"
+                      key={eventLabel}
+                      title={event?.display}
+                      onClick={() => applyBall(eventLabel)}
+                      className={event?.wicket ? "danger-ball" : ""}
+                      disabled={isAutoSaving}
+                    >
+                      {eventLabel}
+                    </button>
+                  );
+                })}
+              </div>
             ))}
           </div>
         </section>
@@ -517,6 +760,11 @@ export function AdminPage() {
                 <Field label="Name" value={team.name} onChange={(value) => updateTeam(teamId, "name", value)} />
                 <Field label="Short name" value={team.shortName} onChange={(value) => updateTeam(teamId, "shortName", value)} />
                 <Field label="Color" type="color" value={team.color} onChange={(value) => updateTeam(teamId, "color", value)} />
+                <TextAreaField
+                  label="Players, comma or line separated"
+                  value={normalizePlayerList(team.players, []).join("\n")}
+                  onChange={(value) => updateTeamPlayers(teamId, value)}
+                />
               </div>
             ))}
           </div>
@@ -524,6 +772,26 @@ export function AdminPage() {
 
         <section className="admin-card">
           <h2>Players</h2>
+          <div className="form-grid player-select-grid">
+            <SelectField
+              label="Striker"
+              value={match.batters[0]?.name}
+              options={battingPlayers}
+              onChange={(value) => selectBatter(0, value)}
+            />
+            <SelectField
+              label="Non-striker"
+              value={match.batters[1]?.name}
+              options={battingPlayers}
+              onChange={(value) => selectBatter(1, value)}
+            />
+            <SelectField
+              label="Current bowler"
+              value={match.bowler?.name}
+              options={bowlingPlayers}
+              onChange={selectBowler}
+            />
+          </div>
           <div className="team-edit-grid">
             {match.batters.map((batter, index) => (
               <div className="mini-panel" key={`${batter.name}-${index}`}>
@@ -582,6 +850,18 @@ export function AdminPage() {
                   <Field label="Team A short" value={upcoming.teamA.shortName} onChange={(value) => updateUpcoming(index, "teamA.shortName", value)} />
                   <Field label="Team B" value={upcoming.teamB.name} onChange={(value) => updateUpcoming(index, "teamB.name", value)} />
                   <Field label="Team B short" value={upcoming.teamB.shortName} onChange={(value) => updateUpcoming(index, "teamB.shortName", value)} />
+                </div>
+                <div className="team-edit-grid">
+                  <TextAreaField
+                    label="Team A players"
+                    value={normalizePlayerList(upcoming.teamA.players, []).join("\n")}
+                    onChange={(value) => updateUpcomingPlayers(index, "teamA", value)}
+                  />
+                  <TextAreaField
+                    label="Team B players"
+                    value={normalizePlayerList(upcoming.teamB.players, []).join("\n")}
+                    onChange={(value) => updateUpcomingPlayers(index, "teamB", value)}
+                  />
                 </div>
               </div>
             ))}

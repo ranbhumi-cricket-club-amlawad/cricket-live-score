@@ -83,6 +83,9 @@ The admin page can update:
 - Batter and bowler player details
 - Recent balls
 - Upcoming matches
+- Current striker, non-striker, and bowler from team squads
+- Upcoming match player lists
+- Ball events: legal runs, wicket, run out, wide, no-ball, byes, leg byes, penalty runs, and free-hit state
 
 Important: this hard-coded login is only a simple frontend gate. It is not real security because browser code can be inspected. The included `database.rules.json` allows public writes to `/scoreboard` so this demo admin panel can save directly from GitHub Pages. For a production tournament, use Firebase Authentication or a backend API before sharing the admin URL publicly.
 

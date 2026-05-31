@@ -32,9 +32,31 @@ function Stat({ label, value }) {
   );
 }
 
+function asArray(value) {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object") return Object.values(value);
+  return [];
+}
+
+function PlayerList({ title, players }) {
+  const list = asArray(players)
+    .map((player) => typeof player === "string" ? player : player?.name)
+    .filter(Boolean);
+
+  if (list.length === 0) return null;
+
+  return (
+    <div className="player-list">
+      <span>{title}</span>
+      <p>{list.join(", ")}</p>
+    </div>
+  );
+}
+
 function LiveMatch({ match }) {
   const battingTeam = match.teams?.[match.battingTeamId];
   const bowlingTeam = match.teams?.[match.bowlingTeamId];
+  const extras = match.extras || {};
 
   return (
     <section className="live-panel">
@@ -63,6 +85,9 @@ function LiveMatch({ match }) {
         <Stat label="Run rate" value={match.score?.runRate} />
         <Stat label="Required" value={match.score?.requiredRate} />
         <Stat label="Venue" value={match.venue || "Tournament venue"} />
+        <Stat label="Extras" value={extras.total || 0} />
+        <Stat label="Free hit" value={match.freeHit ? "Yes" : "No"} />
+        <Stat label="Scorecard" value="Live" />
       </div>
 
       <div className="players-grid">
@@ -109,7 +134,7 @@ function LiveMatch({ match }) {
           </div>
           <div className="recent-balls">
             {match.recentBalls?.map((ball, index) => (
-              <span className={ball === "W" ? "wicket" : ""} key={`${ball}-${index}`}>{ball}</span>
+              <span className={ball === "W" || ball === "RO" ? "wicket" : ""} key={`${ball}-${index}`}>{ball}</span>
             ))}
           </div>
         </div>
@@ -148,6 +173,8 @@ function UpcomingMatches({ matches }) {
               <span><Clock3 size={15} /> {match.date} · {match.time}</span>
               <span><MapPin size={15} /> {match.venue}</span>
             </div>
+            <PlayerList title={`${match.teamA.shortName || "Team A"} squad`} players={match.teamA.players} />
+            <PlayerList title={`${match.teamB.shortName || "Team B"} squad`} players={match.teamB.players} />
           </article>
         ))}
       </div>

@@ -22,12 +22,14 @@ export const sampleScoreboard = {
       falcons: {
         name: "Mumbai Falcons",
         shortName: "MF",
-        color: "#0f766e"
+        color: "#0f766e",
+        players: ["Arjun Rao", "Karan Mehta", "Vikram Shah", "Rohan Patel", "Manav Joshi", "Dev Sharma", "Amit Yadav"]
       },
       titans: {
         name: "Delhi Titans",
         shortName: "DT",
-        color: "#b45309"
+        color: "#b45309",
+        players: ["Sameer Khan", "Nikhil Verma", "Rahul Singh", "Imran Ali", "Kabir Gill", "Yash Batra", "Naveen Das"]
       }
     },
     batters: [
@@ -60,6 +62,14 @@ export const sampleScoreboard = {
       wickets: 1,
       economy: "8.70"
     },
+    extras: {
+      wides: 0,
+      noBalls: 0,
+      byes: 0,
+      legByes: 0,
+      penalty: 0,
+      total: 0
+    },
     recentBalls: ["1", "4", "0", "W", "2", "1"],
     lastUpdated: new Date().toISOString()
   },
@@ -72,11 +82,13 @@ export const sampleScoreboard = {
       venue: "Eden Gardens, Kolkata",
       teamA: {
         name: "Kolkata Royals",
-        shortName: "KR"
+        shortName: "KR",
+        players: ["Aarav Sen", "Ritwik Bose", "Sahil Dey", "Ankit Paul"]
       },
       teamB: {
         name: "Chennai Kings",
-        shortName: "CK"
+        shortName: "CK",
+        players: ["Pranav Iyer", "Madhav Kumar", "Suresh Nair", "Ajay Menon"]
       }
     },
     {
@@ -87,11 +99,13 @@ export const sampleScoreboard = {
       venue: "M. Chinnaswamy Stadium, Bengaluru",
       teamA: {
         name: "Bengaluru Stars",
-        shortName: "BS"
+        shortName: "BS",
+        players: ["Nitin Reddy", "Harish Gowda", "Charan Raj", "Kiran S"]
       },
       teamB: {
         name: "Hyderabad Hawks",
-        shortName: "HH"
+        shortName: "HH",
+        players: ["Adil Khan", "Faiz Ahmed", "Ravi Teja", "Sohan R"]
       }
     },
     {
@@ -102,11 +116,13 @@ export const sampleScoreboard = {
       venue: "Narendra Modi Stadium, Ahmedabad",
       teamA: {
         name: "Gujarat Lions",
-        shortName: "GL"
+        shortName: "GL",
+        players: ["Jay Shah", "Parth Desai", "Umang Vyas", "Dhruv Patel"]
       },
       teamB: {
         name: "Punjab Strikers",
-        shortName: "PS"
+        shortName: "PS",
+        players: ["Gurpreet Singh", "Armaan Gill", "Kabir Sandhu", "Tej Brar"]
       }
     }
   ]
