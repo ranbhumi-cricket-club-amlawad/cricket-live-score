@@ -24,6 +24,10 @@ function nextBall() {
 
   striker.balls += 1;
   striker.strikeRate = ((striker.runs / striker.balls) * 100).toFixed(2);
+  scoreboard.currentMatch.battingScorecard = scoreboard.currentMatch.battingScorecard || [...scoreboard.currentMatch.batters];
+  const strikerScore = scoreboard.currentMatch.battingScorecard.find((player) => player.name === striker.name);
+  if (strikerScore) Object.assign(strikerScore, striker);
+  if (!strikerScore) scoreboard.currentMatch.battingScorecard.unshift({ ...striker });
 
   const [wholeOvers, ballsInOver] = String(score.overs).split(".").map(Number);
   const nextBalls = ballsInOver + 1;

@@ -117,10 +117,28 @@ function CurrentOver({ match }) {
   );
 }
 
+function getBattingRows(match) {
+  const currentBatters = asArray(match.batters);
+  const currentNames = new Set(currentBatters.map((player) => player?.name).filter(Boolean));
+  const scorecardRows = asArray(match.battingScorecard).filter((player) => player?.name && !currentNames.has(player.name));
+  const normalizeRow = (player, index = -1) => {
+    const runs = Number(player.runs) || 0;
+    const balls = Number(player.balls) || 0;
+    const role = index === 0 ? "Striker" : index === 1 ? "Non-striker" : player.role || "Played";
+    return { ...player, role, runs, balls, fours: Number(player.fours) || 0, sixes: Number(player.sixes) || 0, strikeRate: player.strikeRate || (balls > 0 ? ((runs / balls) * 100).toFixed(2) : "0.00"), isStriker: index === 0, isCurrent: index >= 0 };
+  };
+
+  return [
+    ...currentBatters.map((player, index) => normalizeRow(player, index)),
+    ...scorecardRows.map((player) => normalizeRow(player))
+  ];
+}
+
 function LiveMatch({ match }) {
   const battingTeam = match.teams?.[match.battingTeamId];
   const bowlingTeam = match.teams?.[match.bowlingTeamId];
   const extras = match.extras || {};
+  const battingRows = getBattingRows(match);
 
   return (
     <section className="live-panel">
@@ -166,10 +184,10 @@ function LiveMatch({ match }) {
               <span>6s</span>
               <span>SR</span>
             </div>
-            {match.batters?.map((player, index) => (
-              <div className={index === 0 ? "table-row active-striker-row" : "table-row"} key={player.name}>
+            {battingRows.map((player, index) => (
+              <div className={player.isStriker ? "table-row active-striker-row" : "table-row"} key={`${player.name}-${index}`}>
                 <span>
-                  <strong>{player.name}{index === 0 ? <span className="strike-indicator">On strike</span> : null}</strong>
+                  <strong>{player.name}{player.isStriker ? <span className="strike-indicator">On strike</span> : null}</strong>
                   <small>{player.role} · {player.team}</small>
                 </span>
                 <span>{player.runs}</span>

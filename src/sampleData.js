@@ -54,6 +54,48 @@ export const sampleScoreboard = {
         strikeRate: "116.67"
       }
     ],
+    battingScorecard: [
+      {
+        name: "Arjun Rao",
+        role: "Striker",
+        team: "Mumbai Falcons",
+        runs: 62,
+        balls: 38,
+        fours: 7,
+        sixes: 2,
+        strikeRate: "163.16"
+      },
+      {
+        name: "Karan Mehta",
+        role: "Non-striker",
+        team: "Mumbai Falcons",
+        runs: 21,
+        balls: 18,
+        fours: 2,
+        sixes: 0,
+        strikeRate: "116.67"
+      },
+      {
+        name: "Vikram Shah",
+        role: "Played",
+        team: "Mumbai Falcons",
+        runs: 36,
+        balls: 29,
+        fours: 4,
+        sixes: 1,
+        strikeRate: "124.14"
+      },
+      {
+        name: "Rohan Patel",
+        role: "Played",
+        team: "Mumbai Falcons",
+        runs: 29,
+        balls: 20,
+        fours: 3,
+        sixes: 1,
+        strikeRate: "145.00"
+      }
+    ],
     bowler: {
       name: "Sameer Khan",
       team: "Delhi Titans",

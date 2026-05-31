@@ -107,6 +107,7 @@ Main fields:
 
 - `tournament`: tournament name, season, and venue.
 - `currentMatch`: live match score, teams, batters, bowler, recent balls.
+- `currentMatch.battingScorecard`: every batter who has played, including previous and current batters.
 - `upcomingMatches`: upcoming match list with teams, date, time, and venue.
 
 ## 6. GitHub Setup

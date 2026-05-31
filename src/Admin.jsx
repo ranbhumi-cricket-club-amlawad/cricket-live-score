@@ -84,6 +84,39 @@ function makePlayerStats(name, team, role = "Player") {
   };
 }
 
+function syncBattingScorecard(match) {
+  const currentBatters = asArray(match.batters, []);
+  const byName = new Map();
+
+  asArray(match.battingScorecard, []).forEach((player) => {
+    if (!player?.name) return;
+    byName.set(player.name, {
+      ...makePlayerStats(player.name, player.team, player.role || "Played"),
+      ...player,
+      runs: toNumber(player.runs),
+      balls: toNumber(player.balls),
+      fours: toNumber(player.fours),
+      sixes: toNumber(player.sixes),
+      strikeRate: calculateStrikeRate(toNumber(player.runs), toNumber(player.balls))
+    });
+  });
+
+  currentBatters.forEach((player, index) => {
+    if (!player?.name) return;
+    const role = index === 0 ? "Striker" : "Non-striker";
+    const current = { ...makePlayerStats(player.name, player.team, role), ...(byName.get(player.name) || {}), ...player, role };
+    current.runs = toNumber(current.runs);
+    current.balls = toNumber(current.balls);
+    current.fours = toNumber(current.fours);
+    current.sixes = toNumber(current.sixes);
+    current.strikeRate = calculateStrikeRate(current.runs, current.balls);
+    byName.set(player.name, current);
+    match.batters[index] = current;
+  });
+
+  match.battingScorecard = Array.from(byName.values()).filter((player) => player.name);
+}
+
 function normalizeScoreboard(value) {
   const source = value || {};
   const sample = sampleScoreboard;
@@ -124,6 +157,7 @@ function normalizeScoreboard(value) {
       },
       teams,
       batters,
+      battingScorecard: asArray(currentMatch.battingScorecard, sampleMatch.battingScorecard || batters),
       bowler,
       extras: normalizeExtras(currentMatch.extras || sampleMatch.extras),
       recentBalls: asArray(currentMatch.recentBalls, sampleMatch.recentBalls)
@@ -147,6 +181,8 @@ function normalizeScoreboard(value) {
       ...sampleMatch.batters.slice(normalized.currentMatch.batters.length)
     ];
   }
+
+  syncBattingScorecard(normalized.currentMatch);
 
   return normalized;
 }
@@ -196,6 +232,7 @@ function decimalOvers(oversValue) {
 
 function recalculateMatch(match) {
   const score = match.score;
+  syncBattingScorecard(match);
   match.extras = normalizeExtras(match.extras);
   const matchOvers = decimalOvers(score.overs);
   const bowlerOvers = decimalOvers(match.bowler.overs);
@@ -367,7 +404,7 @@ export function AdminPage() {
   }
 
   function getPlayerStats(name, team, role, existingPlayers = []) {
-    return existingPlayers.find((player) => player.name === name) || makePlayerStats(name, team, role);
+    return [...asArray(scoreboard.currentMatch.battingScorecard, []), ...existingPlayers].find((player) => player.name === name) || makePlayerStats(name, team, role);
   }
 
   function selectBatter(index, playerName) {
@@ -423,8 +460,14 @@ export function AdminPage() {
   function updateBatter(index, field, value) {
     updateDraft((draft) => {
       const batter = draft.currentMatch.batters[index];
+      const previousName = batter.name;
       batter[field] = ["runs", "balls", "fours", "sixes"].includes(field) ? toNumber(value) : value;
       batter.strikeRate = calculateStrikeRate(toNumber(batter.runs), toNumber(batter.balls));
+      if (field === "name" && previousName && previousName !== value) {
+        const scorecardPlayer = asArray(draft.currentMatch.battingScorecard, []).find((player) => player.name === previousName);
+        if (scorecardPlayer) scorecardPlayer.name = value;
+      }
+      syncBattingScorecard(draft.currentMatch);
     });
   }
 
