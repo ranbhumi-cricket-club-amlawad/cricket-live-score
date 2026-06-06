@@ -481,6 +481,36 @@ button:disabled {
   padding: 16px;
 }
 
+.match-card-button {
+  position: relative;
+  width: 100%;
+  display: block;
+  border: 0;
+  padding: 0 28px 0 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.match-card-chevron {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: #64748b;
+  transition: transform 160ms ease;
+}
+
+.expanded-match-card .match-card-chevron {
+  transform: rotate(180deg);
+}
+
+.match-card-details {
+  margin-top: 14px;
+  border-top: 1px solid #e6ebf2;
+}
+
 .match-card-top,
 .fixture-teams {
   display: flex;
@@ -619,6 +649,14 @@ code {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+.admin-upcoming-card {
+  order: -2;
+}
+
+.tournament-admin-card {
+  order: -1;
 }
 
 .admin-card {
@@ -841,6 +879,41 @@ code {
 .upcoming-admin-list {
   display: grid;
   gap: 16px;
+}
+
+.upcoming-admin-list .mini-panel {
+  padding: 14px;
+  border: 1px solid #e6ebf2;
+  border-radius: 8px;
+}
+
+.selected-upcoming-admin {
+  border-color: #99f6e4 !important;
+  background: #f0fdfa;
+}
+
+.upcoming-select-button {
+  min-width: 240px;
+  display: grid;
+  gap: 4px;
+  border: 0;
+  padding: 0;
+  color: #172033;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.upcoming-select-button span {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.upcoming-admin-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .empty-state {

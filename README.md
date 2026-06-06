@@ -78,6 +78,7 @@ Password: Score@2026
 The admin page can update:
 
 - Tournament name, season, and venue
+- Upcoming matches appear first; select one to edit it or use `Make Live` to promote it
 - Live match status, target, score, wickets, overs, and rates
 - Batting and bowling team details
 - Batter and bowler player details
@@ -88,6 +89,8 @@ The admin page can update:
 - Ball events: legal runs, wicket, run out, wide, no-ball, byes, leg byes, penalty runs, and free-hit state
 
 Important: this hard-coded login is only a simple frontend gate. It is not real security because browser code can be inspected. The included `database.rules.json` allows public writes to `/scoreboard` so this demo admin panel can save directly from GitHub Pages. For a production tournament, use Firebase Authentication or a backend API before sharing the admin URL publicly.
+
+The public scorecard is shown only while `currentMatch.status` is exactly `LIVE`. Other statuses show only the upcoming match list. Select an upcoming match card to view both team squads.
 
 ## 5. Data Shape
 

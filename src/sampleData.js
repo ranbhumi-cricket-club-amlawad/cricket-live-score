@@ -5,7 +5,7 @@ export const sampleScoreboard = {
     venue: "Wankhede Stadium, Mumbai"
   },
   currentMatch: {
-    status: "LIVE",
+    status: "UPCOMING",
     matchNo: "Match 7",
     battingTeamId: "falcons",
     bowlingTeamId: "titans",

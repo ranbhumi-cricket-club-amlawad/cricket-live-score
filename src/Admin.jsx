@@ -162,8 +162,9 @@ function normalizeScoreboard(value) {
       extras: normalizeExtras(currentMatch.extras || sampleMatch.extras),
       recentBalls: asArray(currentMatch.recentBalls, sampleMatch.recentBalls)
     },
-    upcomingMatches: asArray(source.upcomingMatches, []).map((match) => ({
+    upcomingMatches: asArray(source.upcomingMatches, []).map((match, index) => ({
       ...match,
+      id: match.id || `match-${index + 1}`,
       teamA: {
         ...(match.teamA || {}),
         players: normalizePlayerList(match.teamA?.players, [])
@@ -331,6 +332,7 @@ function AdminLogin({ onLogin }) {
 export function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => window.sessionStorage.getItem("cricket-admin") === "true");
   const [scoreboard, setScoreboard] = useState(() => cloneScoreboard(sampleScoreboard));
+  const [selectedUpcomingId, setSelectedUpcomingId] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -497,9 +499,10 @@ export function AdminPage() {
   }
 
   function addUpcomingMatch() {
+    const matchId = `match-${Date.now()}`;
     updateDraft((draft) => {
       draft.upcomingMatches.push({
-        id: `match-${Date.now()}`,
+        id: matchId,
         matchNo: `Match ${draft.upcomingMatches.length + 1}`,
         date: "",
         time: "",
@@ -508,12 +511,52 @@ export function AdminPage() {
         teamB: { name: "", shortName: "", players: [] }
       });
     });
+    setSelectedUpcomingId(matchId);
   }
 
   function removeUpcomingMatch(index) {
     updateDraft((draft) => {
       draft.upcomingMatches.splice(index, 1);
     });
+  }
+
+  function makeUpcomingMatchLive(index) {
+    return updateDraftAndSave((draft) => {
+      const upcoming = draft.upcomingMatches[index];
+      if (!upcoming) return;
+      const teamAPlayers = normalizePlayerList(upcoming.teamA?.players, []);
+      const teamBPlayers = normalizePlayerList(upcoming.teamB?.players, []);
+      const teamAName = upcoming.teamA?.name || "Team A";
+      const teamBName = upcoming.teamB?.name || "Team B";
+      const striker = makePlayerStats(teamAPlayers[0] || `${teamAName} Player 1`, teamAName, "Striker");
+      const nonStriker = makePlayerStats(teamAPlayers[1] || `${teamAName} Player 2`, teamAName, "Non-striker");
+      draft.currentMatch = {
+        id: upcoming.id,
+        status: "LIVE",
+        matchNo: upcoming.matchNo || `Match ${index + 1}`,
+        date: upcoming.date || "",
+        time: upcoming.time || "",
+        venue: upcoming.venue || draft.tournament.venue,
+        battingTeamId: "teamA",
+        bowlingTeamId: "teamB",
+        innings: `${teamAName} innings`,
+        target: 0,
+        score: { runs: 0, wickets: 0, overs: "0.0", runRate: "0.00", requiredRate: "0.00" },
+        teams: {
+          teamA: { ...upcoming.teamA, name: teamAName, shortName: upcoming.teamA?.shortName || "A", color: upcoming.teamA?.color || "#0f766e", players: teamAPlayers },
+          teamB: { ...upcoming.teamB, name: teamBName, shortName: upcoming.teamB?.shortName || "B", color: upcoming.teamB?.color || "#b45309", players: teamBPlayers }
+        },
+        batters: [striker, nonStriker],
+        battingScorecard: [striker, nonStriker],
+        bowler: { name: teamBPlayers[0] || `${teamBName} Bowler`, team: teamBName, overs: "0.0", runs: 0, wickets: 0, economy: "0.00" },
+        extras: { ...DEFAULT_EXTRAS },
+        freeHit: false,
+        recentBalls: [],
+        ballHistory: [],
+        lastUpdated: new Date().toISOString()
+      };
+      draft.upcomingMatches.splice(index, 1);
+    }, `${scoreboard.upcomingMatches[index]?.matchNo || "Match"} is now live.`);
   }
 
   async function updateDraftAndSave(updater, successMessage = "Saved to Firebase.") {
@@ -688,6 +731,7 @@ export function AdminPage() {
   const bowlingTeam = teams[match.bowlingTeamId];
   const battingPlayers = normalizePlayerList(battingTeam?.players, match.batters.map((player) => player.name));
   const bowlingPlayers = normalizePlayerList(bowlingTeam?.players, [match.bowler.name]);
+  const hasLiveMatch = String(match.status || "").toUpperCase() === "LIVE";
 
   return (
     <main className="admin-shell">
@@ -712,7 +756,7 @@ export function AdminPage() {
       {error ? <div className="alert">{error}</div> : null}
 
       <form className="admin-grid" onSubmit={saveScoreboard}>
-        <section className="admin-card">
+        <section className="admin-card tournament-admin-card">
           <h2>Tournament</h2>
           <div className="form-grid">
             <Field label="Tournament name" value={scoreboard.tournament.name} onChange={(value) => updateTournament("name", value)} />
@@ -721,7 +765,7 @@ export function AdminPage() {
           </div>
         </section>
 
-        <section className="admin-card">
+        {hasLiveMatch ? <section className="admin-card">
           <h2>Live Match</h2>
           <div className="form-grid">
             <Field label="Status" value={match.status} onChange={(value) => updateMatch("status", value)} />
@@ -810,9 +854,9 @@ export function AdminPage() {
               </div>
             ))}
           </div>
-        </section>
+        </section> : null}
 
-        <section className="admin-card">
+        {hasLiveMatch ? <section className="admin-card">
           <h2>Teams</h2>
           <div className="team-edit-grid">
             {Object.entries(teams).map(([teamId, team]) => (
@@ -829,9 +873,9 @@ export function AdminPage() {
               </div>
             ))}
           </div>
-        </section>
+        </section> : null}
 
-        <section className="admin-card">
+        {hasLiveMatch ? <section className="admin-card">
           <h2>Players</h2>
           <div className="form-grid player-select-grid">
             <SelectField
@@ -883,9 +927,9 @@ export function AdminPage() {
             value={(match.recentBalls || []).join(", ")}
             onChange={(value) => updateMatch("recentBalls", value.split(",").map((item) => item.trim()).filter(Boolean))}
           />
-        </section>
+        </section> : null}
 
-        <section className="admin-card admin-card-wide">
+        <section className="admin-card admin-card-wide admin-upcoming-card">
           <div className="card-heading-row">
             <h2>Upcoming Matches</h2>
             <button type="button" className="secondary-button" onClick={addUpcomingMatch}>
@@ -900,33 +944,33 @@ export function AdminPage() {
               </div>
             ) : null}
             {scoreboard.upcomingMatches.map((upcoming, index) => (
-              <div className="mini-panel" key={upcoming.id}>
+              <div className={selectedUpcomingId === upcoming.id ? "mini-panel selected-upcoming-admin" : "mini-panel"} key={upcoming.id}>
                 <div className="card-heading-row">
-                  <h3>{upcoming.matchNo || `Match ${index + 1}`}</h3>
-                  <button type="button" className="danger-button" onClick={() => removeUpcomingMatch(index)}>Remove</button>
+                  <button type="button" className="upcoming-select-button" onClick={() => setSelectedUpcomingId(selectedUpcomingId === upcoming.id ? "" : upcoming.id)}>
+                    <strong>{upcoming.matchNo || `Match ${index + 1}`}</strong>
+                    <span>{upcoming.teamA?.name || "Team A"} vs {upcoming.teamB?.name || "Team B"} · {upcoming.date || "Date pending"} {upcoming.time || ""}</span>
+                  </button>
+                  <div className="upcoming-admin-actions">
+                    <button type="button" className="primary-button" onClick={() => makeUpcomingMatchLive(index)} disabled={isAutoSaving}>Make Live</button>
+                    <button type="button" className="danger-button" onClick={() => removeUpcomingMatch(index)}>Remove</button>
+                  </div>
                 </div>
-                <div className="form-grid">
-                  <Field label="Match no" value={upcoming.matchNo} onChange={(value) => updateUpcoming(index, "matchNo", value)} />
-                  <Field label="Date" type="date" value={upcoming.date} onChange={(value) => updateUpcoming(index, "date", value)} />
-                  <Field label="Time" type="time" value={upcoming.time} onChange={(value) => updateUpcoming(index, "time", value)} />
-                  <Field label="Venue" value={upcoming.venue} onChange={(value) => updateUpcoming(index, "venue", value)} />
-                  <Field label="Team A" value={upcoming.teamA.name} onChange={(value) => updateUpcoming(index, "teamA.name", value)} />
-                  <Field label="Team A short" value={upcoming.teamA.shortName} onChange={(value) => updateUpcoming(index, "teamA.shortName", value)} />
-                  <Field label="Team B" value={upcoming.teamB.name} onChange={(value) => updateUpcoming(index, "teamB.name", value)} />
-                  <Field label="Team B short" value={upcoming.teamB.shortName} onChange={(value) => updateUpcoming(index, "teamB.shortName", value)} />
-                </div>
-                <div className="team-edit-grid">
-                  <TextAreaField
-                    label="Team A players"
-                    value={normalizePlayerList(upcoming.teamA.players, []).join("\n")}
-                    onChange={(value) => updateUpcomingPlayers(index, "teamA", value)}
-                  />
-                  <TextAreaField
-                    label="Team B players"
-                    value={normalizePlayerList(upcoming.teamB.players, []).join("\n")}
-                    onChange={(value) => updateUpcomingPlayers(index, "teamB", value)}
-                  />
-                </div>
+                {selectedUpcomingId === upcoming.id ? <>
+                  <div className="form-grid">
+                    <Field label="Match no" value={upcoming.matchNo} onChange={(value) => updateUpcoming(index, "matchNo", value)} />
+                    <Field label="Date" type="date" value={upcoming.date} onChange={(value) => updateUpcoming(index, "date", value)} />
+                    <Field label="Time" type="time" value={upcoming.time} onChange={(value) => updateUpcoming(index, "time", value)} />
+                    <Field label="Venue" value={upcoming.venue} onChange={(value) => updateUpcoming(index, "venue", value)} />
+                    <Field label="Team A" value={upcoming.teamA.name} onChange={(value) => updateUpcoming(index, "teamA.name", value)} />
+                    <Field label="Team A short" value={upcoming.teamA.shortName} onChange={(value) => updateUpcoming(index, "teamA.shortName", value)} />
+                    <Field label="Team B" value={upcoming.teamB.name} onChange={(value) => updateUpcoming(index, "teamB.name", value)} />
+                    <Field label="Team B short" value={upcoming.teamB.shortName} onChange={(value) => updateUpcoming(index, "teamB.shortName", value)} />
+                  </div>
+                  <div className="team-edit-grid">
+                    <TextAreaField label="Team A players" value={normalizePlayerList(upcoming.teamA.players, []).join("\n")} onChange={(value) => updateUpcomingPlayers(index, "teamA", value)} />
+                    <TextAreaField label="Team B players" value={normalizePlayerList(upcoming.teamB.players, []).join("\n")} onChange={(value) => updateUpcomingPlayers(index, "teamB", value)} />
+                  </div>
+                </> : null}
               </div>
             ))}
           </div>
@@ -937,10 +981,10 @@ export function AdminPage() {
             <Save size={17} />
             Save to Firebase
           </button>
-          <button className="secondary-button" type="button" onClick={() => applyBall("1")} disabled={isAutoSaving}>
+          {hasLiveMatch ? <button className="secondary-button" type="button" onClick={() => applyBall("1")} disabled={isAutoSaving}>
             <Zap size={16} />
             Add 1 Run
-          </button>
+          </button> : null}
         </div>
       </form>
     </main>

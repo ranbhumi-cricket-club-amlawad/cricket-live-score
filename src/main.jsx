@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { CalendarDays, Clock3, MapPin, Radio, Shield, Trophy } from "lucide-react";
+import { CalendarDays, ChevronDown, Clock3, MapPin, Radio, Shield, Trophy } from "lucide-react";
 import { AdminPage } from "./Admin";
 import { fetchScoreboard, hasFirebaseConfig, refreshIntervalMs } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
@@ -223,6 +223,7 @@ function LiveMatch({ match }) {
 
 function UpcomingMatches({ matches }) {
   const upcoming = Array.isArray(matches) ? matches : [];
+  const [selectedMatchId, setSelectedMatchId] = useState("");
 
   return (
     <section className="upcoming">
@@ -236,23 +237,28 @@ function UpcomingMatches({ matches }) {
             No upcoming matches scheduled.
           </div>
         ) : null}
-        {upcoming.map((match) => (
-          <article className="match-card" key={match.id}>
-            <div className="match-card-top">
-              <span>{match.matchNo}</span>
-              <strong>{match.teamA.shortName} vs {match.teamB.shortName}</strong>
-            </div>
-            <div className="fixture-teams">
-              <span>{match.teamA.name}</span>
-              <b>v</b>
-              <span>{match.teamB.name}</span>
-            </div>
-            <div className="fixture-meta">
-              <span><Clock3 size={15} /> {match.date} · {match.time}</span>
-              <span><MapPin size={15} /> {match.venue}</span>
-            </div>
-            <PlayerList title={`${match.teamA.shortName || "Team A"} squad`} players={match.teamA.players} />
-            <PlayerList title={`${match.teamB.shortName || "Team B"} squad`} players={match.teamB.players} />
+        {upcoming.map((match, index) => (
+          <article className={selectedMatchId === (match.id || `${match.matchNo}-${index}`) ? "match-card expanded-match-card" : "match-card"} key={match.id || `${match.matchNo}-${index}`}>
+            <button type="button" className="match-card-button" onClick={() => setSelectedMatchId(selectedMatchId === (match.id || `${match.matchNo}-${index}`) ? "" : (match.id || `${match.matchNo}-${index}`))} aria-expanded={selectedMatchId === (match.id || `${match.matchNo}-${index}`)}>
+              <div className="match-card-top">
+                <span>{match.matchNo}</span>
+                <strong>{match.teamA.shortName} vs {match.teamB.shortName}</strong>
+              </div>
+              <div className="fixture-teams">
+                <span>{match.teamA.name}</span>
+                <b>v</b>
+                <span>{match.teamB.name}</span>
+              </div>
+              <div className="fixture-meta">
+                <span><Clock3 size={15} /> {match.date} · {match.time}</span>
+                <span><MapPin size={15} /> {match.venue}</span>
+              </div>
+              <ChevronDown className="match-card-chevron" size={18} />
+            </button>
+            {selectedMatchId === (match.id || `${match.matchNo}-${index}`) ? <div className="match-card-details">
+              <PlayerList title={`${match.teamA.shortName || "Team A"} squad`} players={match.teamA.players} />
+              <PlayerList title={`${match.teamB.shortName || "Team B"} squad`} players={match.teamB.players} />
+            </div> : null}
           </article>
         ))}
       </div>
@@ -307,6 +313,7 @@ function App() {
 
   const match = scoreboard.currentMatch || sampleScoreboard.currentMatch;
   const tournament = scoreboard.tournament || sampleScoreboard.tournament;
+  const hasLiveMatch = String(match.status || "").toUpperCase() === "LIVE";
   const isAdminRoute = route === "#/admin" || window.location.pathname.replace(/\/$/, "").endsWith("/admin");
 
   if (isAdminRoute) {
@@ -336,7 +343,7 @@ function App() {
         </div>
       ) : null}
 
-      <LiveMatch match={{ ...match, venue: tournament.venue }} />
+      {hasLiveMatch ? <LiveMatch match={{ ...match, venue: match.venue || tournament.venue }} /> : null}
       <UpcomingMatches matches={scoreboard.upcomingMatches || []} />
     </main>
   );
