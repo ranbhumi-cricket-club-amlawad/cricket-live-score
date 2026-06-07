@@ -175,6 +175,36 @@ button:disabled {
   color: #ffffff;
 }
 
+.innings-break-panel .live-header {
+  background: linear-gradient(135deg, #172033 0%, #334155 65%, #b45309 100%);
+}
+
+.innings-break-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #fcd34d;
+  padding: 16px 28px;
+  color: #78350f;
+  background: #fef3c7;
+}
+
+.innings-break-banner > div {
+  display: grid;
+  gap: 3px;
+}
+
+.innings-break-banner strong {
+  font-size: 1.05rem;
+  text-transform: uppercase;
+}
+
+.innings-break-banner span {
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
 .eyebrow {
   gap: 8px;
   font-size: 0.86rem;
@@ -1243,11 +1273,17 @@ code {
   }
 
   .live-header,
+  .innings-break-banner,
   .teams-row,
   .stats-grid,
   .players-grid {
     padding-left: 14px;
     padding-right: 14px;
+  }
+
+  .innings-break-banner {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .previous-innings-summary {

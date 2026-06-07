@@ -138,11 +138,12 @@ function LiveMatch({ match }) {
   const battingTeam = match.teams?.[match.battingTeamId];
   const bowlingTeam = match.teams?.[match.bowlingTeamId];
   const previousInningsScore = Number(match.inningsNumber) >= 2 ? match.teamScores?.[match.bowlingTeamId] : null;
+  const isInningsBreak = String(match.status || "").toUpperCase() === "INNINGS BREAK";
   const extras = match.extras || {};
   const battingRows = getBattingRows(match);
 
   return (
-    <section className="live-panel">
+    <section className={isInningsBreak ? "live-panel innings-break-panel" : "live-panel"}>
       <div className="live-header">
         <div>
           <div className="eyebrow">
@@ -157,6 +158,14 @@ function LiveMatch({ match }) {
           <strong>{match.score?.runs}/{match.score?.wickets}</strong>
         </div>
       </div>
+
+      {isInningsBreak ? <div className="innings-break-banner">
+        <div>
+          <strong>Innings Break</strong>
+          <span>{battingTeam?.name || "Batting Team"} finished on {match.score?.runs || 0}/{match.score?.wickets || 0} after {match.score?.overs || "0.0"} overs</span>
+        </div>
+        <span>Waiting for second innings</span>
+      </div> : null}
 
       <div className="teams-row">
         <TeamPill team={battingTeam} />
@@ -176,7 +185,7 @@ function LiveMatch({ match }) {
         <Stat label="Venue" value={match.venue || "Tournament venue"} />
         <Stat label="Extras" value={extras.total || 0} />
         <Stat label="Free hit" value={match.freeHit ? "Yes" : "No"} />
-        <Stat label="Scorecard" value="Live" />
+        <Stat label="Scorecard" value={isInningsBreak ? "Innings Break" : "Live"} />
       </div>
 
       <div className="players-grid">
@@ -373,7 +382,7 @@ function App() {
   const match = scoreboard.currentMatch || sampleScoreboard.currentMatch;
   const tournament = scoreboard.tournament || sampleScoreboard.tournament;
   const matchStatus = String(match.status || "").toUpperCase();
-  const hasLiveMatch = matchStatus === "LIVE";
+  const hasLiveMatch = ["LIVE", "INNINGS BREAK"].includes(matchStatus);
   const completedMatches = asArray(scoreboard.completedMatches);
   const visibleCompletedMatches = ["COMPLETED", "CANCELLED"].includes(matchStatus) && !completedMatches.some((item) => item.id && item.id === match.id) ? [match, ...completedMatches] : completedMatches;
   const isAdminRoute = route === "#/admin" || window.location.pathname.replace(/\/$/, "").endsWith("/admin");
