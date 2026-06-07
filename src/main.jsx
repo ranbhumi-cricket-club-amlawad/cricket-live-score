@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { CalendarDays, CheckCircle2, ChevronDown, Clock3, MapPin, Radio, Shield, Trophy } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronDown, Clock3, MapPin, Radio, Shield, Trophy, Users } from "lucide-react";
 import { AdminPage } from "./Admin";
 import { formatDisplayDateTime, formatMatchSchedule } from "./dateFormat";
+import { fetchLiveUserCount, getBrowserPresenceId, presenceCountIntervalMs, presenceHeartbeatIntervalMs, sendPresenceHeartbeat } from "./firebasePresence";
 import { fetchScoreboard, hasFirebaseConfig, refreshIntervalMs } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
 import "./styles.css";
@@ -331,8 +332,10 @@ function App() {
   const [route, setRoute] = useState(() => window.location.hash);
   const [scoreboard, setScoreboard] = useState(sampleScoreboard);
   const [lastRefresh, setLastRefresh] = useState(null);
+  const [liveViewerCount, setLiveViewerCount] = useState(null);
   const [error, setError] = useState("");
   const usingFirebase = useMemo(() => hasFirebaseConfig(), []);
+  const isAdminRoute = route === "#/admin" || window.location.pathname.replace(/\/$/, "").endsWith("/admin");
 
   useEffect(() => {
     function handleRouteChange() {
@@ -372,14 +375,61 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!usingFirebase || isAdminRoute) {
+      setLiveViewerCount(null);
+      return undefined;
+    }
+
+    let mounted = true;
+    const browserId = getBrowserPresenceId();
+
+    async function sendHeartbeat() {
+      if (document.visibilityState !== "visible") return;
+      try {
+        await sendPresenceHeartbeat(browserId);
+      } catch {
+        return;
+      }
+    }
+
+    async function loadLiveViewerCount() {
+      try {
+        const count = await fetchLiveUserCount();
+        if (mounted) setLiveViewerCount(count);
+      } catch {
+        if (mounted) setLiveViewerCount("--");
+      }
+    }
+
+    async function activatePresence() {
+      await sendHeartbeat();
+      await loadLiveViewerCount();
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") activatePresence();
+    }
+
+    activatePresence();
+    const heartbeatIntervalId = window.setInterval(sendHeartbeat, presenceHeartbeatIntervalMs);
+    const countIntervalId = window.setInterval(loadLiveViewerCount, presenceCountIntervalMs);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(heartbeatIntervalId);
+      window.clearInterval(countIntervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isAdminRoute, usingFirebase]);
+
   const match = scoreboard.currentMatch || sampleScoreboard.currentMatch;
   const tournament = scoreboard.tournament || sampleScoreboard.tournament;
   const matchStatus = String(match.status || "").toUpperCase();
   const hasLiveMatch = ["LIVE", "INNINGS BREAK"].includes(matchStatus);
   const completedMatches = asArray(scoreboard.completedMatches);
   const visibleCompletedMatches = ["COMPLETED", "CANCELLED"].includes(matchStatus) && !completedMatches.some((item) => item.id && item.id === match.id) ? [match, ...completedMatches] : completedMatches;
-  const isAdminRoute = route === "#/admin" || window.location.pathname.replace(/\/$/, "").endsWith("/admin");
-
   if (isAdminRoute) {
     return <AdminPage />;
   }
@@ -395,6 +445,11 @@ function App() {
           </div>
         </div>
         <div className="sync-state">
+          {usingFirebase ? <span className="viewer-count" aria-label={`${liveViewerCount ?? "--"} live viewers`}>
+            <Users size={16} />
+            <strong>{liveViewerCount ?? "--"}</strong>
+            <small>live</small>
+          </span> : null}
           <small>{lastRefresh ? formatDisplayDateTime(lastRefresh) : "Starting"}</small>
         </div>
       </header>

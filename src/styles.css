@@ -81,13 +81,36 @@ body {
 }
 
 .sync-state {
-  gap: 0;
+  gap: 10px;
   justify-content: flex-end;
   color: #334155;
 }
 
 .sync-state small {
   text-align: right;
+}
+
+.viewer-count {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #b2dfd6;
+  border-radius: 8px;
+  padding: 5px 8px;
+  color: #0f766e;
+  background: #ecfdf5;
+}
+
+.viewer-count strong {
+  font-size: 0.9rem;
+}
+
+.viewer-count small {
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .admin-link,

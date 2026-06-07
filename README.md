@@ -40,7 +40,7 @@ firebase use YOUR_PROJECT_ID
 firebase deploy --only database
 ```
 
-The included rule allows public reads at `/scoreboard` and authenticated writes.
+The included rules allow the demo admin to update `/scoreboard` and allow anonymous public presence heartbeats under `/liveUsers`. Deploy the database rules whenever the presence configuration changes.
 
 ## 3. Add Demo Data
 
@@ -95,12 +95,15 @@ Important: this hard-coded login is only a simple frontend gate. It is not real 
 
 The public scorecard is shown while `currentMatch.status` is `LIVE` or `INNINGS BREAK`. During an innings break it keeps the full scorecard visible with a clear break banner. Upcoming and completed/cancelled matches have separate sections. Select an upcoming match card to view both team squads.
 
+The public top bar shows an approximate live viewer count. Each browser stores one anonymous ID in `localStorage`, sends a heartbeat every 20 seconds while a public scoreboard tab is visible, and stops being counted after 60 seconds without a heartbeat. Admin pages do not count as viewers.
+
 ## 5. Data Shape
 
 Firebase path:
 
 ```text
 /scoreboard
+/liveUsers/{anonymousBrowserId}
 ```
 
 Example data lives in:
@@ -116,6 +119,7 @@ Main fields:
 - `currentMatch.battingScorecard`: every batter who has played, including previous and current batters.
 - `upcomingMatches`: upcoming match list with teams, date, time, and venue.
 - `completedMatches`: completed and cancelled match history.
+- `liveUsers`: anonymous presence records containing only a Firebase server-generated `lastSeen` timestamp.
 
 ## 6. GitHub Setup
 
@@ -137,6 +141,7 @@ In GitHub:
 
 ```text
 VITE_FIREBASE_DATABASE_URL=https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com
+VITE_LIVE_USERS_PATH=liveUsers
 ```
 
 3. Repository Settings > Pages > Source: GitHub Actions.

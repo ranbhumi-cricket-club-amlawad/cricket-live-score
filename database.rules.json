@@ -3,6 +3,19 @@
     "scoreboard": {
       ".read": true,
       ".write": true
+    },
+    "liveUsers": {
+      ".read": true,
+      "$browserId": {
+        ".write": true,
+        ".validate": "newData.val() === null || newData.hasChildren(['lastSeen'])",
+        "lastSeen": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }
