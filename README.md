@@ -78,7 +78,8 @@ Password: Score@2026
 The admin page can update:
 
 - Tournament name, season, and venue
-- Upcoming matches appear first; select one to edit it or use `Make Live` to promote it
+- Upcoming matches appear first; use `Make Live`, then select which team bats first
+- Use `Start Second Innings` after the first innings to preserve its score, swap batting/fielding teams, set the target, and initialize the other team's players
 - Completed and cancelled matches are retained until an admin removes them
 - Live match status, target, score, wickets, overs, and rates
 - Batting and bowling team details

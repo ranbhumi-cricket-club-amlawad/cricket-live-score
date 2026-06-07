@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { CalendarPlus, LogOut, Minus, Plus, Save, ShieldCheck, Trophy, Zap } from "lucide-react";
+import { ArrowLeftRight, CalendarPlus, LogOut, Minus, Plus, Save, ShieldCheck, Trophy, Zap } from "lucide-react";
 import { fetchScoreboard, hasFirebaseConfig, updateScoreboard } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
 
@@ -159,6 +159,7 @@ function normalizeScoreboard(value) {
     currentMatch: {
       ...sampleMatch,
       ...currentMatch,
+      inningsNumber: toNumber(currentMatch.inningsNumber) || (String(currentMatch.status || "").toUpperCase() === "LIVE" && toNumber(currentMatch.target) > 0 ? 2 : 1),
       score: {
         ...sampleMatch.score,
         ...(currentMatch.score || {})
@@ -367,6 +368,7 @@ export function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => window.sessionStorage.getItem("cricket-admin") === "true");
   const [scoreboard, setScoreboard] = useState(() => cloneScoreboard(sampleScoreboard));
   const [selectedUpcomingId, setSelectedUpcomingId] = useState("");
+  const [pendingLiveMatchId, setPendingLiveMatchId] = useState("");
   const [pendingWicketLabel, setPendingWicketLabel] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -576,7 +578,8 @@ export function AdminPage() {
     }, "Upcoming match cancelled.");
   }
 
-  function makeUpcomingMatchLive(index) {
+  function makeUpcomingMatchLive(index, battingTeamId) {
+    setPendingLiveMatchId("");
     return updateDraftAndSave((draft) => {
       const upcoming = draft.upcomingMatches[index];
       if (!upcoming) return;
@@ -584,8 +587,14 @@ export function AdminPage() {
       const teamBPlayers = normalizePlayerList(upcoming.teamB?.players, []);
       const teamAName = upcoming.teamA?.name || "Team A";
       const teamBName = upcoming.teamB?.name || "Team B";
-      const striker = makePlayerStats(teamAPlayers[0] || `${teamAName} Player 1`, teamAName, "Striker");
-      const nonStriker = makePlayerStats(teamAPlayers[1] || `${teamAName} Player 2`, teamAName, "Non-striker");
+      const firstBattingTeamId = battingTeamId === "teamB" ? "teamB" : "teamA";
+      const firstBowlingTeamId = firstBattingTeamId === "teamA" ? "teamB" : "teamA";
+      const firstBattingPlayers = firstBattingTeamId === "teamA" ? teamAPlayers : teamBPlayers;
+      const firstBowlingPlayers = firstBowlingTeamId === "teamA" ? teamAPlayers : teamBPlayers;
+      const firstBattingTeamName = firstBattingTeamId === "teamA" ? teamAName : teamBName;
+      const firstBowlingTeamName = firstBowlingTeamId === "teamA" ? teamAName : teamBName;
+      const striker = makePlayerStats(firstBattingPlayers[0] || `${firstBattingTeamName} Player 1`, firstBattingTeamName, "Striker");
+      const nonStriker = makePlayerStats(firstBattingPlayers[1] || `${firstBattingTeamName} Player 2`, firstBattingTeamName, "Non-striker");
       draft.currentMatch = {
         id: upcoming.id,
         status: "LIVE",
@@ -593,9 +602,10 @@ export function AdminPage() {
         date: upcoming.date || "",
         time: upcoming.time || "",
         venue: upcoming.venue || draft.tournament.venue,
-        battingTeamId: "teamA",
-        bowlingTeamId: "teamB",
-        innings: `${teamAName} innings`,
+        battingTeamId: firstBattingTeamId,
+        bowlingTeamId: firstBowlingTeamId,
+        inningsNumber: 1,
+        innings: `${firstBattingTeamName} innings`,
         target: 0,
         score: { runs: 0, wickets: 0, overs: "0.0", runRate: "0.00", requiredRate: "0.00" },
         teams: {
@@ -608,7 +618,7 @@ export function AdminPage() {
         },
         batters: [striker, nonStriker],
         battingScorecard: [striker, nonStriker],
-        bowler: { name: teamBPlayers[0] || `${teamBName} Bowler`, team: teamBName, overs: "0.0", runs: 0, wickets: 0, economy: "0.00" },
+        bowler: { name: firstBowlingPlayers[0] || `${firstBowlingTeamName} Bowler`, team: firstBowlingTeamName, overs: "0.0", runs: 0, wickets: 0, economy: "0.00" },
         extras: { ...DEFAULT_EXTRAS },
         freeHit: false,
         recentBalls: [],
@@ -616,7 +626,7 @@ export function AdminPage() {
         lastUpdated: new Date().toISOString()
       };
       draft.upcomingMatches.splice(index, 1);
-    }, `${scoreboard.upcomingMatches[index]?.matchNo || "Match"} is now live.`);
+    }, `${scoreboard.upcomingMatches[index]?.matchNo || "Match"} is live with ${battingTeamId === "teamB" ? scoreboard.upcomingMatches[index]?.teamB?.name || "Team B" : scoreboard.upcomingMatches[index]?.teamA?.name || "Team A"} batting.`);
   }
 
   function clearCurrentMatch(match) {
@@ -640,6 +650,38 @@ export function AdminPage() {
     return updateDraftAndSave((draft) => {
       draft.completedMatches.splice(index, 1);
     }, "Completed match removed.");
+  }
+
+  function startSecondInnings() {
+    return updateDraftAndSave((draft) => {
+      const match = draft.currentMatch;
+      if (toNumber(match.inningsNumber) >= 2) return;
+      const firstBattingTeamId = match.battingTeamId;
+      const secondBattingTeamId = match.bowlingTeamId;
+      const firstBattingTeam = match.teams[firstBattingTeamId];
+      const secondBattingTeam = match.teams[secondBattingTeamId];
+      const secondTeamPlayers = normalizePlayerList(secondBattingTeam?.players, []);
+      const firstTeamPlayers = normalizePlayerList(firstBattingTeam?.players, []);
+      const firstInningsScore = { runs: toNumber(match.score.runs), wickets: toNumber(match.score.wickets), overs: match.score.overs || "0.0" };
+      const striker = makePlayerStats(secondTeamPlayers[0] || `${secondBattingTeam?.name || "Batting Team"} Player 1`, secondBattingTeam?.name || "Batting Team", "Striker");
+      const nonStriker = makePlayerStats(secondTeamPlayers[1] || `${secondBattingTeam?.name || "Batting Team"} Player 2`, secondBattingTeam?.name || "Batting Team", "Non-striker");
+      match.teamScores = { ...(match.teamScores || {}), [firstBattingTeamId]: firstInningsScore, [secondBattingTeamId]: { runs: 0, wickets: 0, overs: "0.0" } };
+      match.inningsScorecards = { ...(match.inningsScorecards || {}), [firstBattingTeamId]: asArray(match.battingScorecard, []) };
+      match.battingTeamId = secondBattingTeamId;
+      match.bowlingTeamId = firstBattingTeamId;
+      match.inningsNumber = 2;
+      match.innings = `${secondBattingTeam?.name || "Batting Team"} innings`;
+      match.target = firstInningsScore.runs + 1;
+      match.score = { runs: 0, wickets: 0, overs: "0.0", runRate: "0.00", requiredRate: ((firstInningsScore.runs + 1) / 20).toFixed(2) };
+      match.batters = [striker, nonStriker];
+      match.battingScorecard = [striker, nonStriker];
+      match.bowler = { name: firstTeamPlayers[0] || `${firstBattingTeam?.name || "Bowling Team"} Bowler`, team: firstBattingTeam?.name || "Bowling Team", overs: "0.0", runs: 0, wickets: 0, economy: "0.00" };
+      match.extras = { ...DEFAULT_EXTRAS };
+      match.freeHit = false;
+      match.recentBalls = [];
+      match.ballHistory = [];
+      match.status = "LIVE";
+    }, "Second innings started. Teams and players have been switched.");
   }
 
   function updateCompletedTeamScore(index, teamId, field, value) {
@@ -905,6 +947,10 @@ export function AdminPage() {
                 {nextStatus}
               </button>
             ))}
+            <button type="button" className="second-innings-button" onClick={startSecondInnings} disabled={isAutoSaving || toNumber(match.inningsNumber) >= 2}>
+              <ArrowLeftRight size={16} />
+              {toNumber(match.inningsNumber) >= 2 ? "Second Innings Active" : "Start Second Innings"}
+            </button>
           </div>
 
           <div className="score-actions">
@@ -1072,11 +1118,22 @@ export function AdminPage() {
                     <span>{upcoming.teamA?.name || "Team A"} vs {upcoming.teamB?.name || "Team B"} · {upcoming.date || "Date pending"} {upcoming.time || ""}</span>
                   </button>
                   <div className="upcoming-admin-actions">
-                    <button type="button" className="primary-button" onClick={() => makeUpcomingMatchLive(index)} disabled={isAutoSaving}>Make Live</button>
+                    <button type="button" className="primary-button" onClick={() => setPendingLiveMatchId(pendingLiveMatchId === upcoming.id ? "" : upcoming.id)} disabled={isAutoSaving}>Make Live</button>
                     <button type="button" className="secondary-button" onClick={() => cancelUpcomingMatch(index)} disabled={isAutoSaving}>Cancel</button>
                     <button type="button" className="danger-button" onClick={() => removeUpcomingMatch(index)}>Remove</button>
                   </div>
                 </div>
+                {pendingLiveMatchId === upcoming.id ? <div className="batting-team-picker">
+                  <div>
+                    <strong>Which team will bat first?</strong>
+                    <span>The other team will be selected for the second innings.</span>
+                  </div>
+                  <div>
+                    <button type="button" className="primary-button" onClick={() => makeUpcomingMatchLive(index, "teamA")} disabled={isAutoSaving}>{upcoming.teamA?.name || "Team A"}</button>
+                    <button type="button" className="primary-button" onClick={() => makeUpcomingMatchLive(index, "teamB")} disabled={isAutoSaving}>{upcoming.teamB?.name || "Team B"}</button>
+                    <button type="button" className="secondary-button" onClick={() => setPendingLiveMatchId("")}>Close</button>
+                  </div>
+                </div> : null}
                 {selectedUpcomingId === upcoming.id ? <>
                   <div className="form-grid">
                     <Field label="Match no" value={upcoming.matchNo} onChange={(value) => updateUpcoming(index, "matchNo", value)} />

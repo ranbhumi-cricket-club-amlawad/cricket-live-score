@@ -224,6 +224,30 @@ button:disabled {
   border-bottom: 1px solid #e6ebf2;
 }
 
+.previous-innings-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 28px;
+  border-bottom: 1px solid #e6ebf2;
+  padding: 12px 0;
+  color: #475569;
+}
+
+.previous-innings-summary span {
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.previous-innings-summary strong {
+  color: #172033;
+}
+
+.previous-innings-summary small {
+  color: #64748b;
+}
+
 .team-pill {
   display: inline-flex;
   align-items: center;
@@ -866,6 +890,34 @@ code {
   flex-wrap: wrap;
 }
 
+.batting-team-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ecfdf5;
+}
+
+.batting-team-picker > div {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.batting-team-picker > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.batting-team-picker span {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
 .mini-panel {
   border-top: 1px solid #e6ebf2;
   padding-top: 14px;
@@ -971,6 +1023,15 @@ code {
   color: #ffffff;
   border-color: #0f766e;
   background: #0f766e;
+}
+
+.status-controls .second-innings-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #ffffff;
+  border-color: #0369a1;
+  background: #0369a1;
 }
 
 .quick-balls .danger-ball,
@@ -1187,6 +1248,16 @@ code {
   .players-grid {
     padding-left: 14px;
     padding-right: 14px;
+  }
+
+  .previous-innings-summary {
+    margin-left: 14px;
+    margin-right: 14px;
+  }
+
+  .batting-team-picker {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .stats-grid,

@@ -137,6 +137,7 @@ function getBattingRows(match) {
 function LiveMatch({ match }) {
   const battingTeam = match.teams?.[match.battingTeamId];
   const bowlingTeam = match.teams?.[match.bowlingTeamId];
+  const previousInningsScore = Number(match.inningsNumber) >= 2 ? match.teamScores?.[match.bowlingTeamId] : null;
   const extras = match.extras || {};
   const battingRows = getBattingRows(match);
 
@@ -149,7 +150,7 @@ function LiveMatch({ match }) {
             {match.status || "LIVE"} · {match.matchNo}
           </div>
           <h1>{battingTeam?.name || "Batting Team"} vs {bowlingTeam?.name || "Bowling Team"}</h1>
-          <p>{match.innings} · Target {match.target}</p>
+          <p>{match.innings}{Number(match.target) > 0 ? ` · Target ${match.target}` : ""}</p>
         </div>
         <div className="score-block">
           <span>{match.score?.overs} ov</span>
@@ -162,6 +163,12 @@ function LiveMatch({ match }) {
         <span className="versus">vs</span>
         <TeamPill team={bowlingTeam} />
       </div>
+
+      {previousInningsScore ? <div className="previous-innings-summary">
+        <span>First innings</span>
+        <strong>{bowlingTeam?.name || "Team"} {previousInningsScore.runs ?? 0}/{previousInningsScore.wickets ?? 0}</strong>
+        <small>{previousInningsScore.overs || "0.0"} ov</small>
+      </div> : null}
 
       <div className="stats-grid">
         <Stat label="Run rate" value={match.score?.runRate} />

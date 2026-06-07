@@ -7,6 +7,7 @@ export const sampleScoreboard = {
   currentMatch: {
     status: "UPCOMING",
     matchNo: "Match 7",
+    inningsNumber: 2,
     battingTeamId: "falcons",
     bowlingTeamId: "titans",
     innings: "Falcons innings",
