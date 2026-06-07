@@ -115,6 +115,7 @@ export const sampleScoreboard = {
     recentBalls: ["1", "4", "0", "W", "2", "1"],
     lastUpdated: new Date().toISOString()
   },
+  completedMatches: [],
   upcomingMatches: [
     {
       id: "match-8",

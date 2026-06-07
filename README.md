@@ -79,6 +79,7 @@ The admin page can update:
 
 - Tournament name, season, and venue
 - Upcoming matches appear first; select one to edit it or use `Make Live` to promote it
+- Completed and cancelled matches are retained until an admin removes them
 - Live match status, target, score, wickets, overs, and rates
 - Batting and bowling team details
 - Batter and bowler player details
@@ -87,10 +88,11 @@ The admin page can update:
 - Current striker, non-striker, and bowler from team squads
 - Upcoming match player lists
 - Ball events: legal runs, wicket, run out, wide, no-ball, byes, leg byes, penalty runs, and free-hit state
+- Wicket and run-out actions require selecting the dismissed player; dismissed players are marked out and removed from striker selection
 
 Important: this hard-coded login is only a simple frontend gate. It is not real security because browser code can be inspected. The included `database.rules.json` allows public writes to `/scoreboard` so this demo admin panel can save directly from GitHub Pages. For a production tournament, use Firebase Authentication or a backend API before sharing the admin URL publicly.
 
-The public scorecard is shown only while `currentMatch.status` is exactly `LIVE`. Other statuses show only the upcoming match list. Select an upcoming match card to view both team squads.
+The public scorecard is shown only while `currentMatch.status` is exactly `LIVE`. Upcoming and completed/cancelled matches have separate sections. Select an upcoming match card to view both team squads.
 
 ## 5. Data Shape
 
@@ -112,6 +114,7 @@ Main fields:
 - `currentMatch`: live match score, teams, batters, bowler, recent balls.
 - `currentMatch.battingScorecard`: every batter who has played, including previous and current batters.
 - `upcomingMatches`: upcoming match list with teams, date, time, and venue.
+- `completedMatches`: completed and cancelled match history.
 
 ## 6. GitHub Setup
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { CalendarDays, ChevronDown, Clock3, MapPin, Radio, Shield, Trophy } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronDown, Clock3, MapPin, Radio, Shield, Trophy } from "lucide-react";
 import { AdminPage } from "./Admin";
 import { fetchScoreboard, hasFirebaseConfig, refreshIntervalMs } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
@@ -124,8 +124,8 @@ function getBattingRows(match) {
   const normalizeRow = (player, index = -1) => {
     const runs = Number(player.runs) || 0;
     const balls = Number(player.balls) || 0;
-    const role = index === 0 ? "Striker" : index === 1 ? "Non-striker" : player.role || "Played";
-    return { ...player, role, runs, balls, fours: Number(player.fours) || 0, sixes: Number(player.sixes) || 0, strikeRate: player.strikeRate || (balls > 0 ? ((runs / balls) * 100).toFixed(2) : "0.00"), isStriker: index === 0, isCurrent: index >= 0 };
+    const role = player.dismissed ? "Out" : index === 0 ? "Striker" : index === 1 ? "Non-striker" : player.role || "Played";
+    return { ...player, role, runs, balls, fours: Number(player.fours) || 0, sixes: Number(player.sixes) || 0, strikeRate: player.strikeRate || (balls > 0 ? ((runs / balls) * 100).toFixed(2) : "0.00"), isStriker: index === 0 && !player.dismissed, isCurrent: index >= 0 };
   };
 
   return [
@@ -185,9 +185,9 @@ function LiveMatch({ match }) {
               <span>SR</span>
             </div>
             {battingRows.map((player, index) => (
-              <div className={player.isStriker ? "table-row active-striker-row" : "table-row"} key={`${player.name}-${index}`}>
+              <div className={player.isStriker ? "table-row active-striker-row" : player.dismissed ? "table-row dismissed-player-row" : "table-row"} key={`${player.name}-${index}`}>
                 <span>
-                  <strong>{player.name}{player.isStriker ? <span className="strike-indicator">On strike</span> : null}</strong>
+                  <strong>{player.name}{player.isStriker ? <span className="strike-indicator">On strike</span> : null}{player.dismissed ? <span className="out-indicator">Out</span> : null}</strong>
                   <small>{player.role} · {player.team}</small>
                 </span>
                 <span>{player.runs}</span>
@@ -266,6 +266,45 @@ function UpcomingMatches({ matches }) {
   );
 }
 
+function CompletedMatches({ matches }) {
+  const completed = asArray(matches);
+
+  return (
+    <section className="completed">
+      <div className="section-title">
+        <CheckCircle2 size={19} />
+        <h2>Completed Matches</h2>
+      </div>
+      <div className="match-list">
+        {completed.length === 0 ? <div className="empty-state">No completed matches.</div> : null}
+        {completed.map((match, index) => {
+          const teamA = match.teams?.[match.battingTeamId] || match.teamA || {};
+          const teamB = match.teams?.[match.bowlingTeamId] || match.teamB || {};
+          const cancelled = String(match.status || "").toUpperCase() === "CANCELLED";
+          return (
+            <article className="match-card completed-match-card" key={match.id || `${match.matchNo}-${index}`}>
+              <div className="match-card-top">
+                <span>{match.matchNo || `Match ${index + 1}`}</span>
+                <strong className={cancelled ? "cancelled-status" : "completed-status"}>{cancelled ? "Cancelled" : "Completed"}</strong>
+              </div>
+              <div className="fixture-teams">
+                <span>{teamA.name || "Team A"}</span>
+                <b>v</b>
+                <span>{teamB.name || "Team B"}</span>
+              </div>
+              {match.score && !cancelled ? <div className="completed-score">{match.score.runs || 0}/{match.score.wickets || 0} <span>({match.score.overs || "0.0"} ov)</span></div> : null}
+              <div className="fixture-meta">
+                <span><Clock3 size={15} /> {match.date || "Date not set"} {match.time || ""}</span>
+                <span><MapPin size={15} /> {match.venue || "Venue not set"}</span>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function App() {
   const [route, setRoute] = useState(() => window.location.hash);
   const [scoreboard, setScoreboard] = useState(sampleScoreboard);
@@ -313,7 +352,10 @@ function App() {
 
   const match = scoreboard.currentMatch || sampleScoreboard.currentMatch;
   const tournament = scoreboard.tournament || sampleScoreboard.tournament;
-  const hasLiveMatch = String(match.status || "").toUpperCase() === "LIVE";
+  const matchStatus = String(match.status || "").toUpperCase();
+  const hasLiveMatch = matchStatus === "LIVE";
+  const completedMatches = asArray(scoreboard.completedMatches);
+  const visibleCompletedMatches = ["COMPLETED", "CANCELLED"].includes(matchStatus) && !completedMatches.some((item) => item.id && item.id === match.id) ? [match, ...completedMatches] : completedMatches;
   const isAdminRoute = route === "#/admin" || window.location.pathname.replace(/\/$/, "").endsWith("/admin");
 
   if (isAdminRoute) {
@@ -345,6 +387,7 @@ function App() {
 
       {hasLiveMatch ? <LiveMatch match={{ ...match, venue: match.venue || tournament.venue }} /> : null}
       <UpcomingMatches matches={scoreboard.upcomingMatches || []} />
+      <CompletedMatches matches={visibleCompletedMatches} />
     </main>
   );
 }

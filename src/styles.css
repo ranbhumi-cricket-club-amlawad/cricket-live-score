@@ -355,6 +355,24 @@ button:disabled {
   text-transform: uppercase;
 }
 
+.out-indicator,
+.out-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #be123c;
+  background: #ffe4e6;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.dismissed-player-row {
+  background: #fff7f7;
+}
+
 .bowler-card {
   border: 1px solid #e6ebf2;
   border-radius: 8px;
@@ -465,6 +483,10 @@ button:disabled {
   margin-top: 24px;
 }
 
+.completed {
+  margin-top: 28px;
+}
+
 .section-title {
   gap: 8px;
   margin-bottom: 14px;
@@ -571,6 +593,36 @@ button:disabled {
   line-height: 1.45;
 }
 
+.completed-status,
+.cancelled-status {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.completed-status {
+  color: #166534 !important;
+  background: #dcfce7;
+}
+
+.cancelled-status {
+  color: #9f1239 !important;
+  background: #ffe4e6;
+}
+
+.completed-score {
+  margin-bottom: 12px;
+  color: #172033;
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+
+.completed-score span {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
 code {
   font-size: 0.92em;
   background: rgba(15, 118, 110, 0.1);
@@ -655,8 +707,12 @@ code {
   order: -2;
 }
 
-.tournament-admin-card {
+.admin-completed-card {
   order: -1;
+}
+
+.tournament-admin-card {
+  order: 0;
 }
 
 .admin-card {
@@ -724,6 +780,10 @@ code {
   resize: vertical;
 }
 
+.apply-players-button {
+  justify-self: start;
+}
+
 .player-select-grid {
   margin-bottom: 16px;
 }
@@ -754,6 +814,35 @@ code {
   margin-top: 12px;
 }
 
+.wicket-player-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  border: 1px solid #fecdd3;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff1f2;
+}
+
+.wicket-player-picker > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.wicket-player-picker span {
+  color: #9f1239;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.wicket-player-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .mini-panel {
   border-top: 1px solid #e6ebf2;
   padding-top: 14px;
@@ -781,6 +870,7 @@ code {
 }
 
 .strike-badge,
+.out-badge,
 .strike-button {
   min-height: 32px;
   display: inline-flex;
@@ -796,6 +886,10 @@ code {
 .strike-badge {
   color: #0f766e;
   background: #ccfbf1;
+}
+
+.out-badge {
+  margin-left: 0;
 }
 
 .strike-button {
@@ -914,6 +1008,32 @@ code {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.completed-admin-list {
+  display: grid;
+  gap: 10px;
+}
+
+.completed-admin-row {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #e6ebf2;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.completed-admin-row div {
+  display: grid;
+  gap: 3px;
+}
+
+.completed-admin-row span {
+  color: #64748b;
+  font-size: 0.82rem;
 }
 
 .empty-state {

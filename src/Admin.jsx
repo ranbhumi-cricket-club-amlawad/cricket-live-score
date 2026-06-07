@@ -60,7 +60,7 @@ function normalizePlayerList(value, fallback = []) {
 
 function splitPlayers(value) {
   return String(value || "")
-    .split(/[\n,]/)
+    .split(/[\r\n,]+/)
     .map((player) => player.trim())
     .filter(Boolean);
 }
@@ -103,7 +103,7 @@ function syncBattingScorecard(match) {
 
   currentBatters.forEach((player, index) => {
     if (!player?.name) return;
-    const role = index === 0 ? "Striker" : "Non-striker";
+    const role = player.dismissed ? "Out" : index === 0 ? "Striker" : "Non-striker";
     const current = { ...makePlayerStats(player.name, player.team, role), ...(byName.get(player.name) || {}), ...player, role };
     current.runs = toNumber(current.runs);
     current.balls = toNumber(current.balls);
@@ -123,10 +123,7 @@ function normalizeScoreboard(value) {
   const currentMatch = source.currentMatch || {};
   const sampleMatch = sample.currentMatch;
   const sourceTeams = currentMatch.teams || {};
-  const teams = {
-    ...sampleMatch.teams,
-    ...sourceTeams
-  };
+  const teams = Object.keys(sourceTeams).length > 0 ? { ...sourceTeams } : { ...sampleMatch.teams };
   const batters = asArray(currentMatch.batters, sampleMatch.batters);
   const bowler = {
     ...sampleMatch.bowler,
@@ -173,7 +170,8 @@ function normalizeScoreboard(value) {
         ...(match.teamB || {}),
         players: normalizePlayerList(match.teamB?.players, [])
       }
-    }))
+    })),
+    completedMatches: asArray(source.completedMatches, []).map((match, index) => ({ ...match, id: match.id || `completed-${index + 1}` }))
   };
 
   if (normalized.currentMatch.batters.length < 2) {
@@ -248,8 +246,8 @@ function recalculateMatch(match) {
 
 function switchStrike(match) {
   match.batters = [match.batters[1], match.batters[0]];
-  match.batters[0].role = "Striker";
-  match.batters[1].role = "Non-striker";
+  match.batters[0].role = match.batters[0].dismissed ? "Out" : "Striker";
+  match.batters[1].role = match.batters[1].dismissed ? "Out" : "Non-striker";
 }
 
 function shouldSwitchStrike(event) {
@@ -272,6 +270,23 @@ function TextAreaField({ label, value, onChange }) {
       <span>{label}</span>
       <textarea value={value ?? ""} onChange={(event) => onChange(event.target.value)} rows={3} />
     </label>
+  );
+}
+
+function PlayerListField({ label, players, onCommit }) {
+  const normalizedValue = normalizePlayerList(players, []).join("\n");
+  const [value, setValue] = useState(normalizedValue);
+
+  useEffect(() => {
+    setValue(normalizedValue);
+  }, [normalizedValue]);
+
+  return (
+    <div className="field field-wide player-list-editor">
+      <span>{label}</span>
+      <textarea aria-label={label} value={value} onChange={(event) => setValue(event.target.value)} onBlur={() => onCommit(splitPlayers(value))} rows={5} placeholder="Player One, Player Two or one player per line" />
+      <button type="button" className="secondary-button apply-players-button" onClick={() => onCommit(splitPlayers(value))}>Apply Players</button>
+    </div>
   );
 }
 
@@ -333,6 +348,7 @@ export function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => window.sessionStorage.getItem("cricket-admin") === "true");
   const [scoreboard, setScoreboard] = useState(() => cloneScoreboard(sampleScoreboard));
   const [selectedUpcomingId, setSelectedUpcomingId] = useState("");
+  const [pendingWicketLabel, setPendingWicketLabel] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -399,9 +415,9 @@ export function AdminPage() {
     });
   }
 
-  function updateTeamPlayers(teamId, value) {
+  function updateTeamPlayers(teamId, players) {
     updateDraft((draft) => {
-      draft.currentMatch.teams[teamId].players = splitPlayers(value);
+      draft.currentMatch.teams[teamId].players = normalizePlayerList(players, []);
     });
   }
 
@@ -422,12 +438,14 @@ export function AdminPage() {
         name: playerName,
         team: battingTeam.name,
         role,
+        dismissed: false,
         strikeRate: calculateStrikeRate(toNumber(player.runs), toNumber(player.balls))
       };
     }, `${index === 0 ? "Striker" : "Non-striker"} updated.`);
   }
 
   function setBatterOnStrike(index) {
+    if (scoreboard.currentMatch.batters[index]?.dismissed) return;
     if (index === 0) return updateDraftAndSave((draft) => {
       draft.currentMatch.batters[0].role = "Striker";
       draft.currentMatch.batters[1].role = "Non-striker";
@@ -492,9 +510,9 @@ export function AdminPage() {
     });
   }
 
-  function updateUpcomingPlayers(index, teamKey, value) {
+  function updateUpcomingPlayers(index, teamKey, players) {
     updateDraft((draft) => {
-      draft.upcomingMatches[index][teamKey].players = splitPlayers(value);
+      draft.upcomingMatches[index][teamKey].players = normalizePlayerList(players, []);
     });
   }
 
@@ -515,9 +533,19 @@ export function AdminPage() {
   }
 
   function removeUpcomingMatch(index) {
-    updateDraft((draft) => {
+    return updateDraftAndSave((draft) => {
       draft.upcomingMatches.splice(index, 1);
-    });
+    }, "Upcoming match removed.");
+  }
+
+  function cancelUpcomingMatch(index) {
+    return updateDraftAndSave((draft) => {
+      const upcoming = draft.upcomingMatches[index];
+      if (!upcoming) return;
+      draft.completedMatches = asArray(draft.completedMatches, []);
+      draft.completedMatches.unshift({ ...upcoming, status: "CANCELLED", completedAt: new Date().toISOString() });
+      draft.upcomingMatches.splice(index, 1);
+    }, "Upcoming match cancelled.");
   }
 
   function makeUpcomingMatchLive(index) {
@@ -559,6 +587,28 @@ export function AdminPage() {
     }, `${scoreboard.upcomingMatches[index]?.matchNo || "Match"} is now live.`);
   }
 
+  function clearCurrentMatch(match) {
+    match.id = "";
+    match.status = "NONE";
+    match.matchNo = "";
+    match.score = { runs: 0, wickets: 0, overs: "0.0", runRate: "0.00", requiredRate: "0.00" };
+    match.recentBalls = [];
+    match.ballHistory = [];
+    match.lastUpdated = new Date().toISOString();
+  }
+
+  function removeCurrentMatch() {
+    return updateDraftAndSave((draft) => {
+      clearCurrentMatch(draft.currentMatch);
+    }, "Current match removed.");
+  }
+
+  function removeCompletedMatch(index) {
+    return updateDraftAndSave((draft) => {
+      draft.completedMatches.splice(index, 1);
+    }, "Completed match removed.");
+  }
+
   async function updateDraftAndSave(updater, successMessage = "Saved to Firebase.") {
     setStatus("Saving...");
     setError("");
@@ -580,7 +630,7 @@ export function AdminPage() {
     }
   }
 
-  function applyBall(eventOrLabel) {
+  function applyBall(eventOrLabel, dismissedPlayerName = "") {
     return updateDraftAndSave((draft) => {
       const event = typeof eventOrLabel === "string"
         ? BALL_EVENTS.find((item) => item.label === eventOrLabel)
@@ -612,6 +662,9 @@ export function AdminPage() {
         if (event.bowlerWicket) {
           bowler.wickets = toNumber(bowler.wickets) + 1;
         }
+        const dismissedPlayer = match.batters.find((player) => player.name === dismissedPlayerName) || striker;
+        dismissedPlayer.dismissed = true;
+        dismissedPlayer.role = "Out";
       }
 
       if (event.strikerBall) {
@@ -634,6 +687,7 @@ export function AdminPage() {
           striker: striker.name,
           legal: event.legal,
           wicket: Boolean(event.wicket),
+          dismissedPlayer: event.wicket ? dismissedPlayerName || striker.name : "",
           time: new Date().toISOString()
         },
         ...(match.ballHistory || [])
@@ -662,22 +716,10 @@ export function AdminPage() {
     }, amount > 0 ? "Added 1 run." : "Removed 1 run.");
   }
 
-  function addWicket() {
-    return updateDraftAndSave((draft) => {
-      const match = draft.currentMatch;
-      const striker = match.batters[0];
-
-      match.score.wickets = toNumber(match.score.wickets) + 1;
-      match.bowler.wickets = toNumber(match.bowler.wickets) + 1;
-      striker.balls = toNumber(striker.balls) + 1;
-      striker.strikeRate = calculateStrikeRate(toNumber(striker.runs), toNumber(striker.balls));
-      const overCompleted = addLegalBall(match);
-      match.recentBalls = ["W", ...(match.recentBalls || [])].slice(0, 6);
-      match.ballHistory = [{ label: "W", display: "Wicket", runs: 0, batterRuns: 0, striker: striker.name, legal: true, wicket: true, time: new Date().toISOString() }, ...(match.ballHistory || [])].slice(0, 30);
-      if (overCompleted) {
-        switchStrike(match);
-      }
-    }, "Added wicket.");
+  function recordWicket(playerName) {
+    const label = pendingWicketLabel || "W";
+    setPendingWicketLabel("");
+    return applyBall(label, playerName);
   }
 
   function removeWicket() {
@@ -686,9 +728,14 @@ export function AdminPage() {
       const striker = match.batters[0];
 
       match.score.wickets = Math.max(0, toNumber(match.score.wickets) - 1);
-      match.bowler.wickets = Math.max(0, toNumber(match.bowler.wickets) - 1);
 
-      if ((match.recentBalls || [])[0] === "W") {
+      if (match.ballHistory?.[0]?.wicket) {
+        const dismissedName = match.ballHistory?.[0]?.dismissedPlayer;
+        const scorecardPlayer = match.battingScorecard?.find((player) => player.name === dismissedName);
+        const activePlayer = match.batters.find((player) => player.name === dismissedName);
+        if (scorecardPlayer) Object.assign(scorecardPlayer, { dismissed: false, role: "Played" });
+        if (activePlayer) Object.assign(activePlayer, { dismissed: false, role: activePlayer === match.batters[0] ? "Striker" : "Non-striker" });
+        if (match.ballHistory[0].label === "W") match.bowler.wickets = Math.max(0, toNumber(match.bowler.wickets) - 1);
         match.recentBalls = match.recentBalls.slice(1);
         match.ballHistory = (match.ballHistory || []).slice(1);
         striker.balls = Math.max(0, toNumber(striker.balls) - 1);
@@ -700,7 +747,17 @@ export function AdminPage() {
 
   function updateMatchStatus(nextStatus) {
     return updateDraftAndSave((draft) => {
-      draft.currentMatch.status = nextStatus;
+      const match = draft.currentMatch;
+      if (nextStatus === "COMPLETED" || nextStatus === "CANCELLED") {
+        draft.completedMatches = asArray(draft.completedMatches, []);
+        const archived = { ...match, status: nextStatus, completedAt: new Date().toISOString() };
+        const existingIndex = draft.completedMatches.findIndex((item) => item.id && item.id === archived.id);
+        if (existingIndex >= 0) draft.completedMatches[existingIndex] = archived;
+        if (existingIndex < 0) draft.completedMatches.unshift(archived);
+        clearCurrentMatch(match);
+        return;
+      }
+      match.status = nextStatus;
     }, `Status changed to ${nextStatus}.`);
   }
 
@@ -729,9 +786,11 @@ export function AdminPage() {
   const teams = match.teams;
   const battingTeam = teams[match.battingTeamId];
   const bowlingTeam = teams[match.bowlingTeamId];
-  const battingPlayers = normalizePlayerList(battingTeam?.players, match.batters.map((player) => player.name));
+  const dismissedPlayerNames = new Set(asArray(match.battingScorecard, []).filter((player) => player.dismissed).map((player) => player.name));
+  const battingPlayers = normalizePlayerList(battingTeam?.players, match.batters.map((player) => player.name)).filter((playerName) => !dismissedPlayerNames.has(playerName));
   const bowlingPlayers = normalizePlayerList(bowlingTeam?.players, [match.bowler.name]);
-  const hasLiveMatch = String(match.status || "").toUpperCase() === "LIVE";
+  const wicketCandidates = match.batters.filter((player) => player?.name && !player.dismissed);
+  const hasCurrentMatch = !["", "NONE", "UPCOMING"].includes(String(match.status || "").toUpperCase());
 
   return (
     <main className="admin-shell">
@@ -765,8 +824,11 @@ export function AdminPage() {
           </div>
         </section>
 
-        {hasLiveMatch ? <section className="admin-card">
-          <h2>Live Match</h2>
+        {hasCurrentMatch ? <section className="admin-card">
+          <div className="card-heading-row">
+            <h2>Current Match</h2>
+            <button type="button" className="danger-button" onClick={removeCurrentMatch} disabled={isAutoSaving}>Remove Match</button>
+          </div>
           <div className="form-grid">
             <Field label="Status" value={match.status} onChange={(value) => updateMatch("status", value)} />
             <Field label="Match no" value={match.matchNo} onChange={(value) => updateMatch("matchNo", value)} />
@@ -789,7 +851,7 @@ export function AdminPage() {
 
           <div className="status-controls">
             <span>Match status</span>
-            {["LIVE", "INNINGS BREAK", "COMPLETED", "UPCOMING"].map((nextStatus) => (
+            {["LIVE", "INNINGS BREAK", "COMPLETED", "CANCELLED"].map((nextStatus) => (
               <button
                 type="button"
                 key={nextStatus}
@@ -811,7 +873,7 @@ export function AdminPage() {
               <Minus size={16} />
               Remove Run
             </button>
-            <button type="button" className="danger-ball" onClick={addWicket} disabled={isAutoSaving}>
+            <button type="button" className="danger-ball" onClick={() => setPendingWicketLabel("W")} disabled={isAutoSaving}>
               <Plus size={16} />
               Add Wicket
             </button>
@@ -824,6 +886,17 @@ export function AdminPage() {
               Add Wide Ball
             </button>
           </div>
+
+          {pendingWicketLabel ? <div className="wicket-player-picker">
+            <div>
+              <strong>Select dismissed player</strong>
+              <span>{pendingWicketLabel === "RO" ? "Run out" : "Wicket"}</span>
+            </div>
+            <div className="wicket-player-actions">
+              {wicketCandidates.map((player) => <button type="button" className="danger-button" onClick={() => recordWicket(player.name)} disabled={isAutoSaving} key={player.name}>{player.name}</button>)}
+              <button type="button" className="secondary-button" onClick={() => setPendingWicketLabel("")}>Cancel</button>
+            </div>
+          </div> : null}
 
           <div className="event-groups">
             {[
@@ -843,7 +916,7 @@ export function AdminPage() {
                       type="button"
                       key={eventLabel}
                       title={event?.display}
-                      onClick={() => applyBall(eventLabel)}
+                      onClick={() => event?.wicket ? setPendingWicketLabel(eventLabel) : applyBall(eventLabel)}
                       className={event?.wicket ? "danger-ball" : ""}
                       disabled={isAutoSaving}
                     >
@@ -856,7 +929,7 @@ export function AdminPage() {
           </div>
         </section> : null}
 
-        {hasLiveMatch ? <section className="admin-card">
+        {hasCurrentMatch ? <section className="admin-card">
           <h2>Teams</h2>
           <div className="team-edit-grid">
             {Object.entries(teams).map(([teamId, team]) => (
@@ -865,17 +938,17 @@ export function AdminPage() {
                 <Field label="Name" value={team.name} onChange={(value) => updateTeam(teamId, "name", value)} />
                 <Field label="Short name" value={team.shortName} onChange={(value) => updateTeam(teamId, "shortName", value)} />
                 <Field label="Color" type="color" value={team.color} onChange={(value) => updateTeam(teamId, "color", value)} />
-                <TextAreaField
+                <PlayerListField
                   label="Players, comma or line separated"
-                  value={normalizePlayerList(team.players, []).join("\n")}
-                  onChange={(value) => updateTeamPlayers(teamId, value)}
+                  players={team.players}
+                  onCommit={(players) => updateTeamPlayers(teamId, players)}
                 />
               </div>
             ))}
           </div>
         </section> : null}
 
-        {hasLiveMatch ? <section className="admin-card">
+        {hasCurrentMatch ? <section className="admin-card">
           <h2>Players</h2>
           <div className="form-grid player-select-grid">
             <SelectField
@@ -902,7 +975,7 @@ export function AdminPage() {
               <div className={index === 0 ? "mini-panel striker-admin-panel" : "mini-panel"} key={`${batter.name}-${index}`}>
                 <div className="mini-panel-title">
                   <h3>{index === 0 ? "Striker" : "Non-striker"}</h3>
-                  {index === 0 ? <span className="strike-badge">On strike</span> : <button type="button" className="strike-button" onClick={() => setBatterOnStrike(index)} disabled={isAutoSaving}>Set on strike</button>}
+                  {batter.dismissed ? <span className="out-badge">Out</span> : index === 0 ? <span className="strike-badge">On strike</span> : <button type="button" className="strike-button" onClick={() => setBatterOnStrike(index)} disabled={isAutoSaving}>Set on strike</button>}
                 </div>
                 <Field label="Name" value={batter.name} onChange={(value) => updateBatter(index, "name", value)} />
                 <Field label="Team" value={batter.team} onChange={(value) => updateBatter(index, "team", value)} />
@@ -952,6 +1025,7 @@ export function AdminPage() {
                   </button>
                   <div className="upcoming-admin-actions">
                     <button type="button" className="primary-button" onClick={() => makeUpcomingMatchLive(index)} disabled={isAutoSaving}>Make Live</button>
+                    <button type="button" className="secondary-button" onClick={() => cancelUpcomingMatch(index)} disabled={isAutoSaving}>Cancel</button>
                     <button type="button" className="danger-button" onClick={() => removeUpcomingMatch(index)}>Remove</button>
                   </div>
                 </div>
@@ -967,10 +1041,28 @@ export function AdminPage() {
                     <Field label="Team B short" value={upcoming.teamB.shortName} onChange={(value) => updateUpcoming(index, "teamB.shortName", value)} />
                   </div>
                   <div className="team-edit-grid">
-                    <TextAreaField label="Team A players" value={normalizePlayerList(upcoming.teamA.players, []).join("\n")} onChange={(value) => updateUpcomingPlayers(index, "teamA", value)} />
-                    <TextAreaField label="Team B players" value={normalizePlayerList(upcoming.teamB.players, []).join("\n")} onChange={(value) => updateUpcomingPlayers(index, "teamB", value)} />
+                    <PlayerListField label="Team A players" players={upcoming.teamA.players} onCommit={(players) => updateUpcomingPlayers(index, "teamA", players)} />
+                    <PlayerListField label="Team B players" players={upcoming.teamB.players} onCommit={(players) => updateUpcomingPlayers(index, "teamB", players)} />
                   </div>
                 </> : null}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="admin-card admin-card-wide admin-completed-card">
+          <div className="card-heading-row">
+            <h2>Completed / Cancelled Matches</h2>
+          </div>
+          <div className="completed-admin-list">
+            {scoreboard.completedMatches.length === 0 ? <div className="empty-state">No completed or cancelled matches.</div> : null}
+            {scoreboard.completedMatches.map((completed, index) => (
+              <div className="completed-admin-row" key={completed.id || `${completed.matchNo}-${index}`}>
+                <div>
+                  <strong>{completed.matchNo || `Match ${index + 1}`}</strong>
+                  <span>{completed.status} · {completed.teams ? `${completed.teams[completed.battingTeamId]?.name || "Team A"} vs ${completed.teams[completed.bowlingTeamId]?.name || "Team B"}` : `${completed.teamA?.name || "Team A"} vs ${completed.teamB?.name || "Team B"}`}</span>
+                </div>
+                <button type="button" className="danger-button" onClick={() => removeCompletedMatch(index)} disabled={isAutoSaving}>Remove</button>
               </div>
             ))}
           </div>
@@ -981,7 +1073,7 @@ export function AdminPage() {
             <Save size={17} />
             Save to Firebase
           </button>
-          {hasLiveMatch ? <button className="secondary-button" type="button" onClick={() => applyBall("1")} disabled={isAutoSaving}>
+          {hasCurrentMatch ? <button className="secondary-button" type="button" onClick={() => applyBall("1")} disabled={isAutoSaving}>
             <Zap size={16} />
             Add 1 Run
           </button> : null}
