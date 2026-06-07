@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, CalendarPlus, LogOut, Minus, Plus, Save, ShieldCheck, Trophy, Zap } from "lucide-react";
+import { formatMatchSchedule } from "./dateFormat";
 import { fetchScoreboard, hasFirebaseConfig, updateScoreboard } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
 
@@ -1115,7 +1116,7 @@ export function AdminPage() {
                 <div className="card-heading-row">
                   <button type="button" className="upcoming-select-button" onClick={() => setSelectedUpcomingId(selectedUpcomingId === upcoming.id ? "" : upcoming.id)}>
                     <strong>{upcoming.matchNo || `Match ${index + 1}`}</strong>
-                    <span>{upcoming.teamA?.name || "Team A"} vs {upcoming.teamB?.name || "Team B"} · {upcoming.date || "Date pending"} {upcoming.time || ""}</span>
+                    <span>{upcoming.teamA?.name || "Team A"} vs {upcoming.teamB?.name || "Team B"} · {formatMatchSchedule(upcoming.date, upcoming.time) || "Date pending"}</span>
                   </button>
                   <div className="upcoming-admin-actions">
                     <button type="button" className="primary-button" onClick={() => setPendingLiveMatchId(pendingLiveMatchId === upcoming.id ? "" : upcoming.id)} disabled={isAutoSaving}>Make Live</button>

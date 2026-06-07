@@ -2,17 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { CalendarDays, CheckCircle2, ChevronDown, Clock3, MapPin, Radio, Shield, Trophy } from "lucide-react";
 import { AdminPage } from "./Admin";
+import { formatDisplayDateTime, formatMatchSchedule } from "./dateFormat";
 import { fetchScoreboard, hasFirebaseConfig, refreshIntervalMs } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
 import "./styles.css";
-
-function formatDateTime(value) {
-  if (!value) return "Waiting for update";
-  return new Intl.DateTimeFormat("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "medium"
-  }).format(new Date(value));
-}
 
 function TeamPill({ team }) {
   return (
@@ -266,7 +259,7 @@ function UpcomingMatches({ matches }) {
                 <span>{match.teamB.name}</span>
               </div>
               <div className="fixture-meta">
-                <span><Clock3 size={15} /> {match.date} · {match.time}</span>
+                <span><Clock3 size={15} /> {formatMatchSchedule(match.date, match.time) || "Date not set"}</span>
                 <span><MapPin size={15} /> {match.venue}</span>
               </div>
               <ChevronDown className="match-card-chevron" size={18} />
@@ -323,7 +316,7 @@ function CompletedMatches({ matches }) {
                 </div>
               </div> : null}
               <div className="fixture-meta">
-                <span><Clock3 size={15} /> {match.date || "Date not set"} {match.time || ""}</span>
+                <span><Clock3 size={15} /> {formatMatchSchedule(match.date, match.time) || "Date not set"}</span>
                 <span><MapPin size={15} /> {match.venue || "Venue not set"}</span>
               </div>
             </article>
@@ -402,7 +395,7 @@ function App() {
           </div>
         </div>
         <div className="sync-state">
-          <small>{lastRefresh ? formatDateTime(lastRefresh) : "Starting"}</small>
+          <small>{lastRefresh ? formatDisplayDateTime(lastRefresh) : "Starting"}</small>
         </div>
       </header>
 
