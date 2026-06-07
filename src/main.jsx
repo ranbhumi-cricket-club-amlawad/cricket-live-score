@@ -278,8 +278,12 @@ function CompletedMatches({ matches }) {
       <div className="match-list">
         {completed.length === 0 ? <div className="empty-state">No completed matches.</div> : null}
         {completed.map((match, index) => {
-          const teamA = match.teams?.[match.battingTeamId] || match.teamA || {};
-          const teamB = match.teams?.[match.bowlingTeamId] || match.teamB || {};
+          const teamAId = match.battingTeamId || "teamA";
+          const teamBId = match.bowlingTeamId || "teamB";
+          const teamA = match.teams?.[teamAId] || match.teamA || {};
+          const teamB = match.teams?.[teamBId] || match.teamB || {};
+          const teamAScore = match.teamScores?.[teamAId] || match.score || null;
+          const teamBScore = match.teamScores?.[teamBId] || (Number(match.target) > 0 ? { runs: Math.max(0, Number(match.target) - 1), wickets: "", overs: "" } : null);
           const cancelled = String(match.status || "").toUpperCase() === "CANCELLED";
           return (
             <article className="match-card completed-match-card" key={match.id || `${match.matchNo}-${index}`}>
@@ -292,7 +296,16 @@ function CompletedMatches({ matches }) {
                 <b>v</b>
                 <span>{teamB.name || "Team B"}</span>
               </div>
-              {match.score && !cancelled ? <div className="completed-score">{match.score.runs || 0}/{match.score.wickets || 0} <span>({match.score.overs || "0.0"} ov)</span></div> : null}
+              {!cancelled ? <div className="completed-team-scores">
+                <div>
+                  <strong>{teamA.shortName || teamA.name || "Team A"}</strong>
+                  <span>{teamAScore ? `${teamAScore.runs ?? 0}/${teamAScore.wickets === "" || teamAScore.wickets == null ? "-" : teamAScore.wickets}` : "Score not entered"} {teamAScore?.overs ? <small>({teamAScore.overs} ov)</small> : null}</span>
+                </div>
+                <div>
+                  <strong>{teamB.shortName || teamB.name || "Team B"}</strong>
+                  <span>{teamBScore ? `${teamBScore.runs ?? 0}/${teamBScore.wickets === "" || teamBScore.wickets == null ? "-" : teamBScore.wickets}` : "Score not entered"} {teamBScore?.overs ? <small>({teamBScore.overs} ov)</small> : null}</span>
+                </div>
+              </div> : null}
               <div className="fixture-meta">
                 <span><Clock3 size={15} /> {match.date || "Date not set"} {match.time || ""}</span>
                 <span><MapPin size={15} /> {match.venue || "Venue not set"}</span>

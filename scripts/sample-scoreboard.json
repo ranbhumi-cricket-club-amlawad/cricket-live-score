@@ -32,6 +32,10 @@
         "players": ["Sameer Khan", "Nikhil Verma", "Rahul Singh", "Imran Ali", "Kabir Gill", "Yash Batra", "Naveen Das"]
       }
     },
+    "teamScores": {
+      "falcons": { "runs": 148, "wickets": 4, "overs": "17.2" },
+      "titans": { "runs": 171, "wickets": 7, "overs": "20.0" }
+    },
     "batters": [
       {
         "name": "Arjun Rao",

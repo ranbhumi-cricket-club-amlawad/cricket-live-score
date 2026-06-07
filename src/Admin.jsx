@@ -140,6 +140,17 @@ function normalizeScoreboard(value) {
     team.players = normalizePlayerList(team.players, [...samplePlayers, ...derivedPlayers]);
   });
 
+  const teamScores = { ...(currentMatch.teamScores || {}) };
+  Object.keys(teams).forEach((teamId) => {
+    const existingScore = teamScores[teamId] || {};
+    const isBattingTeam = teamId === currentMatch.battingTeamId;
+    teamScores[teamId] = {
+      runs: isBattingTeam ? toNumber(currentMatch.score?.runs) : toNumber(existingScore.runs),
+      wickets: isBattingTeam ? toNumber(currentMatch.score?.wickets) : toNumber(existingScore.wickets),
+      overs: isBattingTeam ? currentMatch.score?.overs || "0.0" : existingScore.overs || "0.0"
+    };
+  });
+
   const normalized = {
     tournament: {
       ...sample.tournament,
@@ -153,6 +164,7 @@ function normalizeScoreboard(value) {
         ...(currentMatch.score || {})
       },
       teams,
+      teamScores,
       batters,
       battingScorecard: asArray(currentMatch.battingScorecard, sampleMatch.battingScorecard || batters),
       bowler,
@@ -171,7 +183,12 @@ function normalizeScoreboard(value) {
         players: normalizePlayerList(match.teamB?.players, [])
       }
     })),
-    completedMatches: asArray(source.completedMatches, []).map((match, index) => ({ ...match, id: match.id || `completed-${index + 1}` }))
+    completedMatches: asArray(source.completedMatches, []).map((match, index) => {
+      const completedTeamScores = { ...(match.teamScores || {}) };
+      if (match.battingTeamId && !completedTeamScores[match.battingTeamId] && match.score) completedTeamScores[match.battingTeamId] = { runs: toNumber(match.score.runs), wickets: toNumber(match.score.wickets), overs: match.score.overs || "0.0" };
+      if (match.bowlingTeamId && !completedTeamScores[match.bowlingTeamId] && toNumber(match.target) > 0) completedTeamScores[match.bowlingTeamId] = { runs: Math.max(0, toNumber(match.target) - 1), wickets: "", overs: "" };
+      return { ...match, id: match.id || `completed-${index + 1}`, teamScores: completedTeamScores };
+    })
   };
 
   if (normalized.currentMatch.batters.length < 2) {
@@ -241,6 +258,8 @@ function recalculateMatch(match) {
   score.runRate = matchOvers > 0 ? (toNumber(score.runs) / matchOvers).toFixed(2) : "0.00";
   score.requiredRate = (remainingRuns / remainingOvers).toFixed(2);
   match.bowler.economy = bowlerOvers > 0 ? (toNumber(match.bowler.runs) / bowlerOvers).toFixed(2) : "0.00";
+  match.teamScores = { ...(match.teamScores || {}) };
+  if (match.battingTeamId) match.teamScores[match.battingTeamId] = { ...(match.teamScores[match.battingTeamId] || {}), runs: toNumber(score.runs), wickets: toNumber(score.wickets), overs: score.overs || "0.0" };
   match.lastUpdated = new Date().toISOString();
 }
 
@@ -421,6 +440,15 @@ export function AdminPage() {
     });
   }
 
+  function updateTeamScore(teamId, field, value) {
+    updateDraft((draft) => {
+      const match = draft.currentMatch;
+      match.teamScores = { ...(match.teamScores || {}) };
+      match.teamScores[teamId] = { runs: 0, wickets: 0, overs: "0.0", ...(match.teamScores[teamId] || {}), [field]: field === "overs" ? value : toNumber(value) };
+      if (teamId === match.battingTeamId) match.score[field] = field === "overs" ? value : toNumber(value);
+    });
+  }
+
   function getPlayerStats(name, team, role, existingPlayers = []) {
     return [...asArray(scoreboard.currentMatch.battingScorecard, []), ...existingPlayers].find((player) => player.name === name) || makePlayerStats(name, team, role);
   }
@@ -574,6 +602,10 @@ export function AdminPage() {
           teamA: { ...upcoming.teamA, name: teamAName, shortName: upcoming.teamA?.shortName || "A", color: upcoming.teamA?.color || "#0f766e", players: teamAPlayers },
           teamB: { ...upcoming.teamB, name: teamBName, shortName: upcoming.teamB?.shortName || "B", color: upcoming.teamB?.color || "#b45309", players: teamBPlayers }
         },
+        teamScores: {
+          teamA: { runs: 0, wickets: 0, overs: "0.0" },
+          teamB: { runs: 0, wickets: 0, overs: "0.0" }
+        },
         batters: [striker, nonStriker],
         battingScorecard: [striker, nonStriker],
         bowler: { name: teamBPlayers[0] || `${teamBName} Bowler`, team: teamBName, overs: "0.0", runs: 0, wickets: 0, economy: "0.00" },
@@ -592,6 +624,7 @@ export function AdminPage() {
     match.status = "NONE";
     match.matchNo = "";
     match.score = { runs: 0, wickets: 0, overs: "0.0", runRate: "0.00", requiredRate: "0.00" };
+    match.teamScores = {};
     match.recentBalls = [];
     match.ballHistory = [];
     match.lastUpdated = new Date().toISOString();
@@ -607,6 +640,14 @@ export function AdminPage() {
     return updateDraftAndSave((draft) => {
       draft.completedMatches.splice(index, 1);
     }, "Completed match removed.");
+  }
+
+  function updateCompletedTeamScore(index, teamId, field, value) {
+    updateDraft((draft) => {
+      const completed = draft.completedMatches[index];
+      completed.teamScores = { ...(completed.teamScores || {}) };
+      completed.teamScores[teamId] = { runs: 0, wickets: 0, overs: "0.0", ...(completed.teamScores[teamId] || {}), [field]: field === "overs" ? value : toNumber(value) };
+    });
   }
 
   async function updateDraftAndSave(updater, successMessage = "Saved to Firebase.") {
@@ -750,6 +791,8 @@ export function AdminPage() {
       const match = draft.currentMatch;
       if (nextStatus === "COMPLETED" || nextStatus === "CANCELLED") {
         draft.completedMatches = asArray(draft.completedMatches, []);
+        match.teamScores = { ...(match.teamScores || {}) };
+        if (match.battingTeamId) match.teamScores[match.battingTeamId] = { ...(match.teamScores[match.battingTeamId] || {}), runs: toNumber(match.score.runs), wickets: toNumber(match.score.wickets), overs: match.score.overs || "0.0" };
         const archived = { ...match, status: nextStatus, completedAt: new Date().toISOString() };
         const existingIndex = draft.completedMatches.findIndex((item) => item.id && item.id === archived.id);
         if (existingIndex >= 0) draft.completedMatches[existingIndex] = archived;
@@ -938,6 +981,11 @@ export function AdminPage() {
                 <Field label="Name" value={team.name} onChange={(value) => updateTeam(teamId, "name", value)} />
                 <Field label="Short name" value={team.shortName} onChange={(value) => updateTeam(teamId, "shortName", value)} />
                 <Field label="Color" type="color" value={team.color} onChange={(value) => updateTeam(teamId, "color", value)} />
+                <div className="team-score-editor">
+                  <Field label="Innings runs" type="number" min="0" value={match.teamScores?.[teamId]?.runs ?? 0} onChange={(value) => updateTeamScore(teamId, "runs", value)} />
+                  <Field label="Innings wickets" type="number" min="0" value={match.teamScores?.[teamId]?.wickets ?? 0} onChange={(value) => updateTeamScore(teamId, "wickets", value)} />
+                  <Field label="Innings overs" value={match.teamScores?.[teamId]?.overs ?? "0.0"} onChange={(value) => updateTeamScore(teamId, "overs", value)} />
+                </div>
                 <PlayerListField
                   label="Players, comma or line separated"
                   players={team.players}
@@ -1056,15 +1104,26 @@ export function AdminPage() {
           </div>
           <div className="completed-admin-list">
             {scoreboard.completedMatches.length === 0 ? <div className="empty-state">No completed or cancelled matches.</div> : null}
-            {scoreboard.completedMatches.map((completed, index) => (
-              <div className="completed-admin-row" key={completed.id || `${completed.matchNo}-${index}`}>
-                <div>
+            {scoreboard.completedMatches.map((completed, index) => {
+              const completedTeamIds = completed.teams ? Object.keys(completed.teams) : [];
+              return (
+              <div className="completed-admin-row completed-admin-score-row" key={completed.id || `${completed.matchNo}-${index}`}>
+                <div className="completed-admin-summary">
                   <strong>{completed.matchNo || `Match ${index + 1}`}</strong>
                   <span>{completed.status} · {completed.teams ? `${completed.teams[completed.battingTeamId]?.name || "Team A"} vs ${completed.teams[completed.bowlingTeamId]?.name || "Team B"}` : `${completed.teamA?.name || "Team A"} vs ${completed.teamB?.name || "Team B"}`}</span>
                 </div>
+                {String(completed.status || "").toUpperCase() !== "CANCELLED" ? <div className="completed-score-editor">
+                  {completedTeamIds.map((teamId) => <div className="completed-team-score-editor" key={teamId}>
+                    <strong>{completed.teams[teamId]?.shortName || completed.teams[teamId]?.name || teamId}</strong>
+                    <Field label="Runs" type="number" min="0" value={completed.teamScores?.[teamId]?.runs ?? ""} onChange={(value) => updateCompletedTeamScore(index, teamId, "runs", value)} />
+                    <Field label="Wickets" type="number" min="0" value={completed.teamScores?.[teamId]?.wickets ?? ""} onChange={(value) => updateCompletedTeamScore(index, teamId, "wickets", value)} />
+                    <Field label="Overs" value={completed.teamScores?.[teamId]?.overs ?? ""} onChange={(value) => updateCompletedTeamScore(index, teamId, "overs", value)} />
+                  </div>)}
+                </div> : null}
                 <button type="button" className="danger-button" onClick={() => removeCompletedMatch(index)} disabled={isAutoSaving}>Remove</button>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
