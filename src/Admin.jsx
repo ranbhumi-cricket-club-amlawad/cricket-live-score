@@ -668,6 +668,7 @@ export function AdminPage() {
       const nonStriker = makePlayerStats(secondTeamPlayers[1] || `${secondBattingTeam?.name || "Batting Team"} Player 2`, secondBattingTeam?.name || "Batting Team", "Non-striker");
       match.teamScores = { ...(match.teamScores || {}), [firstBattingTeamId]: firstInningsScore, [secondBattingTeamId]: { runs: 0, wickets: 0, overs: "0.0" } };
       match.inningsScorecards = { ...(match.inningsScorecards || {}), [firstBattingTeamId]: asArray(match.battingScorecard, []) };
+      match.inningsBowlers = { ...(match.inningsBowlers || {}), [firstBowlingTeamId]: match.bowler };
       match.battingTeamId = secondBattingTeamId;
       match.bowlingTeamId = firstBattingTeamId;
       match.inningsNumber = 2;
@@ -836,6 +837,10 @@ export function AdminPage() {
         draft.completedMatches = asArray(draft.completedMatches, []);
         match.teamScores = { ...(match.teamScores || {}) };
         if (match.battingTeamId) match.teamScores[match.battingTeamId] = { ...(match.teamScores[match.battingTeamId] || {}), runs: toNumber(match.score.runs), wickets: toNumber(match.score.wickets), overs: match.score.overs || "0.0" };
+        match.inningsScorecards = { ...(match.inningsScorecards || {}) };
+        match.inningsBowlers = { ...(match.inningsBowlers || {}) };
+        if (match.battingTeamId) match.inningsScorecards[match.battingTeamId] = asArray(match.battingScorecard, []);
+        if (match.bowlingTeamId) match.inningsBowlers[match.bowlingTeamId] = match.bowler;
         const archived = { ...match, status: nextStatus, completedAt: new Date().toISOString() };
         const existingIndex = draft.completedMatches.findIndex((item) => item.id && item.id === archived.id);
         if (existingIndex >= 0) draft.completedMatches[existingIndex] = archived;

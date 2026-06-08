@@ -278,6 +278,7 @@ function UpcomingMatches({ matches }) {
 
 function CompletedMatches({ matches }) {
   const completed = asArray(matches);
+  const [selectedMatchId, setSelectedMatchId] = useState("");
 
   return (
     <section className="completed">
@@ -288,6 +289,7 @@ function CompletedMatches({ matches }) {
       <div className="match-list">
         {completed.length === 0 ? <div className="empty-state">No completed matches.</div> : null}
         {completed.map((match, index) => {
+          const matchKey = match.id || `${match.matchNo}-${index}`;
           const teamAId = match.battingTeamId || "teamA";
           const teamBId = match.bowlingTeamId || "teamB";
           const teamA = match.teams?.[teamAId] || match.teamA || {};
@@ -295,8 +297,9 @@ function CompletedMatches({ matches }) {
           const teamAScore = match.teamScores?.[teamAId] || match.score || null;
           const teamBScore = match.teamScores?.[teamBId] || (Number(match.target) > 0 ? { runs: Math.max(0, Number(match.target) - 1), wickets: "", overs: "" } : null);
           const cancelled = String(match.status || "").toUpperCase() === "CANCELLED";
+          const selected = selectedMatchId === matchKey;
           return (
-            <article className="match-card completed-match-card" key={match.id || `${match.matchNo}-${index}`}>
+            <article className={selected ? "match-card completed-match-card expanded-match-card" : "match-card completed-match-card"} key={matchKey}>
               <div className="match-card-top">
                 <span>{match.matchNo || `Match ${index + 1}`}</span>
                 <strong className={cancelled ? "cancelled-status" : "completed-status"}>{cancelled ? "Cancelled" : "Completed"}</strong>
@@ -320,11 +323,61 @@ function CompletedMatches({ matches }) {
                 <span><Clock3 size={15} /> {formatMatchSchedule(match.date, match.time) || "Date not set"}</span>
                 <span><MapPin size={15} /> {match.venue || "Venue not set"}</span>
               </div>
+              {!cancelled ? <button type="button" className="completed-details-toggle" onClick={() => setSelectedMatchId(selected ? "" : matchKey)} aria-expanded={selected}>
+                Player details
+                <ChevronDown className="match-card-chevron-inline" size={18} />
+              </button> : null}
+              {selected && !cancelled ? <CompletedMatchDetails match={match} teamAId={teamAId} teamBId={teamBId} teamA={teamA} teamB={teamB} /> : null}
             </article>
           );
         })}
       </div>
     </section>
+  );
+}
+
+function CompletedMatchDetails({ match, teamAId, teamBId, teamA, teamB }) {
+  const innings = [
+    { teamId: teamAId, opponentId: teamBId, team: teamA, opponent: teamB },
+    { teamId: teamBId, opponentId: teamAId, team: teamB, opponent: teamA }
+  ];
+
+  return (
+    <div className="completed-match-details">
+      {innings.map(({ teamId, opponentId, team, opponent }) => {
+        const score = match.teamScores?.[teamId] || (teamId === match.battingTeamId ? match.score : null);
+        const battingRows = asArray(match.inningsScorecards?.[teamId] || (teamId === match.battingTeamId ? match.battingScorecard : [])).filter((player) => player?.name);
+        const bowler = match.inningsBowlers?.[opponentId] || (opponentId === match.bowlingTeamId ? match.bowler : null);
+        return (
+          <div className="completed-innings-detail" key={teamId}>
+            <div className="completed-innings-title">
+              <strong>{team?.name || "Team"} batting</strong>
+              {score ? <span>{score.runs ?? 0}/{score.wickets === "" || score.wickets == null ? "-" : score.wickets} {score.overs ? `(${score.overs} ov)` : ""}</span> : null}
+            </div>
+            {battingRows.length > 0 ? <div className="completed-player-table">
+              <div className="completed-player-row completed-player-head">
+                <span>Player</span>
+                <span>R</span>
+                <span>B</span>
+                <span>4s</span>
+                <span>6s</span>
+              </div>
+              {battingRows.map((player, index) => <div className="completed-player-row" key={`${teamId}-${player.name}-${index}`}>
+                <span><strong>{player.name}</strong>{player.dismissed ? <small>Out</small> : null}</span>
+                <span>{player.runs ?? 0}</span>
+                <span>{player.balls ?? 0}</span>
+                <span>{player.fours ?? 0}</span>
+                <span>{player.sixes ?? 0}</span>
+              </div>)}
+            </div> : <div className="completed-detail-empty">Player scorecard not available.</div>}
+            {bowler?.name ? <div className="completed-bowler-summary">
+              <strong>{opponent?.shortName || opponent?.name || "Bowling"} bowler: {bowler.name}</strong>
+              <span>{bowler.overs || "0.0"} ov · {bowler.runs ?? 0} runs · {bowler.wickets ?? 0} wkts · Econ {bowler.economy || "0.00"}</span>
+            </div> : null}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

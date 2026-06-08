@@ -93,7 +93,7 @@ The admin page can update:
 
 Important: this hard-coded login is only a simple frontend gate. It is not real security because browser code can be inspected. The included `database.rules.json` allows public writes to `/scoreboard` so this demo admin panel can save directly from GitHub Pages. For a production tournament, use Firebase Authentication or a backend API before sharing the admin URL publicly.
 
-The public scorecard is shown while `currentMatch.status` is `LIVE` or `INNINGS BREAK`. During an innings break it keeps the full scorecard visible with a clear break banner. Upcoming and completed/cancelled matches have separate sections. Select an upcoming match card to view both team squads.
+The public scorecard is shown while `currentMatch.status` is `LIVE` or `INNINGS BREAK`. During an innings break it keeps the full scorecard visible with a clear break banner. Upcoming and completed/cancelled matches have separate sections. Select an upcoming match card to view both team squads, or open a completed match to view player run details and bowler over details.
 
 The public top bar shows an approximate live viewer count. Each browser stores one anonymous ID in `localStorage`, sends a heartbeat every 20 seconds while a public scoreboard tab is visible, and stops being counted after 60 seconds without a heartbeat. Admin pages do not count as viewers.
 
@@ -117,6 +117,8 @@ Main fields:
 - `tournament`: tournament name, season, and venue.
 - `currentMatch`: live match score, teams, batters, bowler, recent balls.
 - `currentMatch.battingScorecard`: every batter who has played, including previous and current batters.
+- `currentMatch.inningsScorecards`: archived batting scorecards for completed innings.
+- `currentMatch.inningsBowlers`: archived bowler over, run, wicket, and economy details for completed innings.
 - `upcomingMatches`: upcoming match list with teams, date, time, and venue.
 - `completedMatches`: completed and cancelled match history.
 - `liveUsers`: anonymous presence records containing only a Firebase server-generated `lastSeen` timestamp.
