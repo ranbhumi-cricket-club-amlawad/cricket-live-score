@@ -838,10 +838,11 @@ export function AdminPage() {
       const score = match.score;
       const striker = match.batters[0];
       const bowler = match.bowler;
+      const change = amount < 0 ? -Math.min(1, toNumber(score.runs), toNumber(striker.runs), toNumber(bowler.runs)) : amount;
 
-      score.runs = Math.max(0, toNumber(score.runs) + amount);
-      striker.runs = Math.max(0, toNumber(striker.runs) + amount);
-      bowler.runs = Math.max(0, toNumber(bowler.runs) + amount);
+      score.runs = Math.max(0, toNumber(score.runs) + change);
+      striker.runs = Math.max(0, toNumber(striker.runs) + change);
+      bowler.runs = Math.max(0, toNumber(bowler.runs) + change);
       striker.strikeRate = calculateStrikeRate(toNumber(striker.runs), toNumber(striker.balls));
     }, amount > 0 ? "Added 1 run." : "Removed 1 run.");
   }
@@ -931,6 +932,7 @@ export function AdminPage() {
   const bowlingPlayers = Array.from(new Set([...normalizePlayerList(bowlingTeam?.players, []), match.bowler.name, ...asArray(match.bowlingScorecard, []).map((player) => player.name)].filter(Boolean)));
   const wicketCandidates = match.batters.filter((player) => player?.name && !player.dismissed);
   const hasCurrentMatch = !["", "NONE", "UPCOMING"].includes(String(match.status || "").toUpperCase());
+  const canRemoveOneRun = hasCurrentMatch && toNumber(match.score?.runs) > 0 && toNumber(match.batters[0]?.runs) > 0 && toNumber(match.bowler?.runs) > 0;
 
   return (
     <main className="admin-shell">
@@ -1011,11 +1013,11 @@ export function AdminPage() {
           <div className="score-actions">
             <button type="button" onClick={() => adjustRun(1)} disabled={isAutoSaving}>
               <Plus size={16} />
-              Add Run
+              Add 1 Run
             </button>
-            <button type="button" onClick={() => adjustRun(-1)} disabled={isAutoSaving}>
+            <button type="button" onClick={() => adjustRun(-1)} disabled={isAutoSaving || !canRemoveOneRun}>
               <Minus size={16} />
-              Remove Run
+              Remove 1 Run
             </button>
             <button type="button" className="danger-ball" onClick={() => setPendingWicketLabel("W")} disabled={isAutoSaving}>
               <Plus size={16} />
@@ -1247,6 +1249,10 @@ export function AdminPage() {
           {hasCurrentMatch ? <button className="secondary-button" type="button" onClick={() => applyBall("1")} disabled={isAutoSaving}>
             <Zap size={16} />
             Add 1 Run
+          </button> : null}
+          {hasCurrentMatch ? <button className="danger-button" type="button" onClick={() => adjustRun(-1)} disabled={isAutoSaving || !canRemoveOneRun}>
+            <Minus size={16} />
+            Remove 1 Run
           </button> : null}
         </div>
       </form>
