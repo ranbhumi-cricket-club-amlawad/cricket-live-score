@@ -117,8 +117,9 @@ Main fields:
 - `tournament`: tournament name, season, and venue.
 - `currentMatch`: live match score, teams, batters, bowler, recent balls.
 - `currentMatch.battingScorecard`: every batter who has played, including previous and current batters.
+- `currentMatch.bowlingScorecard`: every bowler used in the current innings, including overs, runs, wickets, and economy.
 - `currentMatch.inningsScorecards`: archived batting scorecards for completed innings.
-- `currentMatch.inningsBowlers`: archived bowler over, run, wicket, and economy details for completed innings.
+- `currentMatch.inningsBowlingScorecards`: archived bowling scorecards for completed innings.
 - `upcomingMatches`: upcoming match list with teams, date, time, and venue.
 - `completedMatches`: completed and cancelled match history.
 - `liveUsers`: anonymous presence records containing only a Firebase server-generated `lastSeen` timestamp.

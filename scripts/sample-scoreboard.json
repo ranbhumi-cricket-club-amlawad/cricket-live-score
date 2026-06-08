@@ -109,6 +109,24 @@
       "wickets": 1,
       "economy": "8.70"
     },
+    "bowlingScorecard": [
+      {
+        "name": "Sameer Khan",
+        "team": "Delhi Titans",
+        "overs": "3.2",
+        "runs": 29,
+        "wickets": 1,
+        "economy": "8.70"
+      },
+      {
+        "name": "Nikhil Verma",
+        "team": "Delhi Titans",
+        "overs": "4.0",
+        "runs": 34,
+        "wickets": 2,
+        "economy": "8.50"
+      }
+    ],
     "extras": {
       "wides": 0,
       "noBalls": 0,

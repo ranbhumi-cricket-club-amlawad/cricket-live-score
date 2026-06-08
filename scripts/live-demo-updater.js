@@ -28,6 +28,10 @@ function nextBall() {
   const strikerScore = scoreboard.currentMatch.battingScorecard.find((player) => player.name === striker.name);
   if (strikerScore) Object.assign(strikerScore, striker);
   if (!strikerScore) scoreboard.currentMatch.battingScorecard.unshift({ ...striker });
+  scoreboard.currentMatch.bowlingScorecard = scoreboard.currentMatch.bowlingScorecard || [bowler];
+  const bowlerScore = scoreboard.currentMatch.bowlingScorecard.find((player) => player.name === bowler.name);
+  if (bowlerScore) Object.assign(bowlerScore, bowler);
+  if (!bowlerScore) scoreboard.currentMatch.bowlingScorecard.unshift({ ...bowler });
 
   const [wholeOvers, ballsInOver] = String(score.overs).split(".").map(Number);
   const nextBalls = ballsInOver + 1;
@@ -35,6 +39,7 @@ function nextBall() {
   score.runRate = (score.runs / (wholeOvers + nextBalls / 6 || 1)).toFixed(2);
   score.requiredRate = Math.max(0, ((scoreboard.currentMatch.target - score.runs) / 3).toFixed(2));
   bowler.economy = (bowler.runs / Math.max(1, wholeOvers + nextBalls / 6)).toFixed(2);
+  if (bowlerScore) Object.assign(bowlerScore, bowler);
   scoreboard.currentMatch.recentBalls = [ball, ...scoreboard.currentMatch.recentBalls].slice(0, 6);
   scoreboard.currentMatch.lastUpdated = new Date().toISOString();
 }

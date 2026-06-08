@@ -85,6 +85,12 @@ function makePlayerStats(name, team, role = "Player") {
   };
 }
 
+function makeBowlerStats(name, team, overs = "0.0", runs = 0, wickets = 0, economy = "") {
+  const decimal = decimalOvers(overs);
+  const normalizedRuns = toNumber(runs);
+  return { name, team, overs: overs || "0.0", runs: normalizedRuns, wickets: toNumber(wickets), economy: economy || (decimal > 0 ? (normalizedRuns / decimal).toFixed(2) : "0.00") };
+}
+
 function syncBattingScorecard(match) {
   const currentBatters = asArray(match.batters, []);
   const byName = new Map();
@@ -116,6 +122,28 @@ function syncBattingScorecard(match) {
   });
 
   match.battingScorecard = Array.from(byName.values()).filter((player) => player.name);
+}
+
+function syncBowlingScorecard(match) {
+  const bowler = match.bowler || {};
+  const byName = new Map();
+
+  asArray(match.bowlingScorecard, []).forEach((player) => {
+    if (!player?.name) return;
+    byName.set(player.name, makeBowlerStats(player.name, player.team || bowler.team || "", player.overs || "0.0", player.runs, player.wickets, player.economy));
+  });
+
+  if (bowler.name) {
+    const existing = byName.get(bowler.name) || {};
+    const overs = bowler.overs || existing.overs || "0.0";
+    const runs = toNumber(bowler.runs ?? existing.runs);
+    const wickets = toNumber(bowler.wickets ?? existing.wickets);
+    const normalized = { ...existing, ...bowler, ...makeBowlerStats(bowler.name, bowler.team || existing.team || "", overs, runs, wickets, bowler.economy || existing.economy) };
+    byName.set(bowler.name, normalized);
+    match.bowler = normalized;
+  }
+
+  match.bowlingScorecard = Array.from(byName.values()).filter((player) => player.name);
 }
 
 function normalizeScoreboard(value) {
@@ -169,6 +197,7 @@ function normalizeScoreboard(value) {
       teamScores,
       batters,
       battingScorecard: asArray(currentMatch.battingScorecard, sampleMatch.battingScorecard || batters),
+      bowlingScorecard: asArray(currentMatch.bowlingScorecard, currentMatch.bowler?.name ? [bowler] : sampleMatch.bowlingScorecard || [bowler]),
       bowler,
       extras: normalizeExtras(currentMatch.extras || sampleMatch.extras),
       recentBalls: asArray(currentMatch.recentBalls, sampleMatch.recentBalls)
@@ -187,9 +216,13 @@ function normalizeScoreboard(value) {
     })),
     completedMatches: asArray(source.completedMatches, []).map((match, index) => {
       const completedTeamScores = { ...(match.teamScores || {}) };
+      const inningsBowlingScorecards = { ...(match.inningsBowlingScorecards || {}) };
+      Object.entries(match.inningsBowlers || {}).forEach(([teamId, bowlerRow]) => {
+        if (!inningsBowlingScorecards[teamId]) inningsBowlingScorecards[teamId] = [bowlerRow];
+      });
       if (match.battingTeamId && !completedTeamScores[match.battingTeamId] && match.score) completedTeamScores[match.battingTeamId] = { runs: toNumber(match.score.runs), wickets: toNumber(match.score.wickets), overs: match.score.overs || "0.0" };
       if (match.bowlingTeamId && !completedTeamScores[match.bowlingTeamId] && toNumber(match.target) > 0) completedTeamScores[match.bowlingTeamId] = { runs: Math.max(0, toNumber(match.target) - 1), wickets: "", overs: "" };
-      return { ...match, id: match.id || `completed-${index + 1}`, teamScores: completedTeamScores };
+      return { ...match, id: match.id || `completed-${index + 1}`, teamScores: completedTeamScores, inningsBowlingScorecards };
     })
   };
 
@@ -201,6 +234,7 @@ function normalizeScoreboard(value) {
   }
 
   syncBattingScorecard(normalized.currentMatch);
+  syncBowlingScorecard(normalized.currentMatch);
 
   return normalized;
 }
@@ -251,6 +285,7 @@ function decimalOvers(oversValue) {
 function recalculateMatch(match) {
   const score = match.score;
   syncBattingScorecard(match);
+  syncBowlingScorecard(match);
   match.extras = normalizeExtras(match.extras);
   const matchOvers = decimalOvers(score.overs);
   const bowlerOvers = decimalOvers(match.bowler.overs);
@@ -260,6 +295,7 @@ function recalculateMatch(match) {
   score.runRate = matchOvers > 0 ? (toNumber(score.runs) / matchOvers).toFixed(2) : "0.00";
   score.requiredRate = (remainingRuns / remainingOvers).toFixed(2);
   match.bowler.economy = bowlerOvers > 0 ? (toNumber(match.bowler.runs) / bowlerOvers).toFixed(2) : "0.00";
+  syncBowlingScorecard(match);
   match.teamScores = { ...(match.teamScores || {}) };
   if (match.battingTeamId) match.teamScores[match.battingTeamId] = { ...(match.teamScores[match.battingTeamId] || {}), runs: toNumber(score.runs), wickets: toNumber(score.wickets), overs: score.overs || "0.0" };
   match.lastUpdated = new Date().toISOString();
@@ -495,16 +531,11 @@ export function AdminPage() {
     return updateDraftAndSave((draft) => {
       const match = draft.currentMatch;
       const bowlingTeam = match.teams[match.bowlingTeamId];
-      const existingBowler = match.bowler?.name === playerName ? match.bowler : {};
+      syncBowlingScorecard(match);
+      const existingBowler = asArray(match.bowlingScorecard, []).find((player) => player.name === playerName) || {};
 
-      match.bowler = {
-        name: playerName,
-        team: bowlingTeam.name,
-        overs: existingBowler.overs || "0.0",
-        runs: toNumber(existingBowler.runs),
-        wickets: toNumber(existingBowler.wickets),
-        economy: existingBowler.economy || "0.00"
-      };
+      match.bowler = makeBowlerStats(playerName, bowlingTeam.name, existingBowler.overs || "0.0", existingBowler.runs, existingBowler.wickets, existingBowler.economy);
+      syncBowlingScorecard(match);
     }, "Bowler updated.");
   }
 
@@ -524,7 +555,13 @@ export function AdminPage() {
 
   function updateBowler(field, value) {
     updateDraft((draft) => {
+      const previousName = draft.currentMatch.bowler.name;
       draft.currentMatch.bowler[field] = ["runs", "wickets"].includes(field) ? toNumber(value) : value;
+      if (field === "name" && previousName && previousName !== value) {
+        const scorecardBowler = asArray(draft.currentMatch.bowlingScorecard, []).find((player) => player.name === previousName);
+        if (scorecardBowler) scorecardBowler.name = value;
+      }
+      syncBowlingScorecard(draft.currentMatch);
     });
   }
 
@@ -596,6 +633,7 @@ export function AdminPage() {
       const firstBowlingTeamName = firstBowlingTeamId === "teamA" ? teamAName : teamBName;
       const striker = makePlayerStats(firstBattingPlayers[0] || `${firstBattingTeamName} Player 1`, firstBattingTeamName, "Striker");
       const nonStriker = makePlayerStats(firstBattingPlayers[1] || `${firstBattingTeamName} Player 2`, firstBattingTeamName, "Non-striker");
+      const firstBowler = makeBowlerStats(firstBowlingPlayers[0] || `${firstBowlingTeamName} Bowler`, firstBowlingTeamName);
       draft.currentMatch = {
         id: upcoming.id,
         status: "LIVE",
@@ -619,7 +657,8 @@ export function AdminPage() {
         },
         batters: [striker, nonStriker],
         battingScorecard: [striker, nonStriker],
-        bowler: { name: firstBowlingPlayers[0] || `${firstBowlingTeamName} Bowler`, team: firstBowlingTeamName, overs: "0.0", runs: 0, wickets: 0, economy: "0.00" },
+        bowler: firstBowler,
+        bowlingScorecard: [firstBowler],
         extras: { ...DEFAULT_EXTRAS },
         freeHit: false,
         recentBalls: [],
@@ -658,6 +697,7 @@ export function AdminPage() {
       const match = draft.currentMatch;
       if (toNumber(match.inningsNumber) >= 2) return;
       const firstBattingTeamId = match.battingTeamId;
+      const firstBowlingTeamId = match.bowlingTeamId;
       const secondBattingTeamId = match.bowlingTeamId;
       const firstBattingTeam = match.teams[firstBattingTeamId];
       const secondBattingTeam = match.teams[secondBattingTeamId];
@@ -666,9 +706,13 @@ export function AdminPage() {
       const firstInningsScore = { runs: toNumber(match.score.runs), wickets: toNumber(match.score.wickets), overs: match.score.overs || "0.0" };
       const striker = makePlayerStats(secondTeamPlayers[0] || `${secondBattingTeam?.name || "Batting Team"} Player 1`, secondBattingTeam?.name || "Batting Team", "Striker");
       const nonStriker = makePlayerStats(secondTeamPlayers[1] || `${secondBattingTeam?.name || "Batting Team"} Player 2`, secondBattingTeam?.name || "Batting Team", "Non-striker");
+      const secondInningsBowler = makeBowlerStats(firstTeamPlayers[0] || `${firstBattingTeam?.name || "Bowling Team"} Bowler`, firstBattingTeam?.name || "Bowling Team");
+      syncBattingScorecard(match);
+      syncBowlingScorecard(match);
       match.teamScores = { ...(match.teamScores || {}), [firstBattingTeamId]: firstInningsScore, [secondBattingTeamId]: { runs: 0, wickets: 0, overs: "0.0" } };
       match.inningsScorecards = { ...(match.inningsScorecards || {}), [firstBattingTeamId]: asArray(match.battingScorecard, []) };
       match.inningsBowlers = { ...(match.inningsBowlers || {}), [firstBowlingTeamId]: match.bowler };
+      match.inningsBowlingScorecards = { ...(match.inningsBowlingScorecards || {}), [firstBowlingTeamId]: asArray(match.bowlingScorecard, []) };
       match.battingTeamId = secondBattingTeamId;
       match.bowlingTeamId = firstBattingTeamId;
       match.inningsNumber = 2;
@@ -677,7 +721,8 @@ export function AdminPage() {
       match.score = { runs: 0, wickets: 0, overs: "0.0", runRate: "0.00", requiredRate: ((firstInningsScore.runs + 1) / 20).toFixed(2) };
       match.batters = [striker, nonStriker];
       match.battingScorecard = [striker, nonStriker];
-      match.bowler = { name: firstTeamPlayers[0] || `${firstBattingTeam?.name || "Bowling Team"} Bowler`, team: firstBattingTeam?.name || "Bowling Team", overs: "0.0", runs: 0, wickets: 0, economy: "0.00" };
+      match.bowler = secondInningsBowler;
+      match.bowlingScorecard = [secondInningsBowler];
       match.extras = { ...DEFAULT_EXTRAS };
       match.freeHit = false;
       match.recentBalls = [];
@@ -835,12 +880,16 @@ export function AdminPage() {
       const match = draft.currentMatch;
       if (nextStatus === "COMPLETED" || nextStatus === "CANCELLED") {
         draft.completedMatches = asArray(draft.completedMatches, []);
+        syncBattingScorecard(match);
+        syncBowlingScorecard(match);
         match.teamScores = { ...(match.teamScores || {}) };
         if (match.battingTeamId) match.teamScores[match.battingTeamId] = { ...(match.teamScores[match.battingTeamId] || {}), runs: toNumber(match.score.runs), wickets: toNumber(match.score.wickets), overs: match.score.overs || "0.0" };
         match.inningsScorecards = { ...(match.inningsScorecards || {}) };
         match.inningsBowlers = { ...(match.inningsBowlers || {}) };
+        match.inningsBowlingScorecards = { ...(match.inningsBowlingScorecards || {}) };
         if (match.battingTeamId) match.inningsScorecards[match.battingTeamId] = asArray(match.battingScorecard, []);
         if (match.bowlingTeamId) match.inningsBowlers[match.bowlingTeamId] = match.bowler;
+        if (match.bowlingTeamId) match.inningsBowlingScorecards[match.bowlingTeamId] = asArray(match.bowlingScorecard, []);
         const archived = { ...match, status: nextStatus, completedAt: new Date().toISOString() };
         const existingIndex = draft.completedMatches.findIndex((item) => item.id && item.id === archived.id);
         if (existingIndex >= 0) draft.completedMatches[existingIndex] = archived;
@@ -879,7 +928,7 @@ export function AdminPage() {
   const bowlingTeam = teams[match.bowlingTeamId];
   const dismissedPlayerNames = new Set(asArray(match.battingScorecard, []).filter((player) => player.dismissed).map((player) => player.name));
   const battingPlayers = normalizePlayerList(battingTeam?.players, match.batters.map((player) => player.name)).filter((playerName) => !dismissedPlayerNames.has(playerName));
-  const bowlingPlayers = normalizePlayerList(bowlingTeam?.players, [match.bowler.name]);
+  const bowlingPlayers = Array.from(new Set([...normalizePlayerList(bowlingTeam?.players, []), match.bowler.name, ...asArray(match.bowlingScorecard, []).map((player) => player.name)].filter(Boolean)));
   const wicketCandidates = match.batters.filter((player) => player?.name && !player.dismissed);
   const hasCurrentMatch = !["", "NONE", "UPCOMING"].includes(String(match.status || "").toUpperCase());
 

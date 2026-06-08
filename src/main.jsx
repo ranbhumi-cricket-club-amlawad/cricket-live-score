@@ -32,6 +32,25 @@ function asArray(value) {
   return [];
 }
 
+function getMatchDateGroups(matches) {
+  const groups = [];
+  const byKey = new Map();
+  asArray(matches).forEach((match, index) => {
+    const source = String(match?.date || match?.completedAt || "").trim();
+    const parsed = /^\d{4}-\d{2}-\d{2}/.test(source) ? source.slice(0, 10) : "";
+    const fallbackDate = parsed ? null : new Date(source);
+    const key = parsed || (!Number.isNaN(fallbackDate.getTime()) ? `${fallbackDate.getFullYear()}-${String(fallbackDate.getMonth() + 1).padStart(2, "0")}-${String(fallbackDate.getDate()).padStart(2, "0")}` : "date-not-set");
+    const parts = key.split("-");
+    const label = key !== "date-not-set" && parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : "Date not set";
+    if (!byKey.has(key)) {
+      byKey.set(key, { key, label, matches: [] });
+      groups.push(byKey.get(key));
+    }
+    byKey.get(key).matches.push({ match, index });
+  });
+  return groups;
+}
+
 function PlayerList({ title, players }) {
   const list = asArray(players)
     .map((player) => typeof player === "string" ? player : player?.name)
@@ -234,6 +253,9 @@ function LiveMatch({ match }) {
 function UpcomingMatches({ matches }) {
   const upcoming = Array.isArray(matches) ? matches : [];
   const [selectedMatchId, setSelectedMatchId] = useState("");
+  const [selectedDateKey, setSelectedDateKey] = useState("");
+  const dateGroups = getMatchDateGroups(upcoming);
+  const activeGroup = dateGroups.find((group) => group.key === selectedDateKey) || dateGroups[0];
 
   return (
     <section className="upcoming">
@@ -241,13 +263,21 @@ function UpcomingMatches({ matches }) {
         <CalendarDays size={19} />
         <h2>Upcoming Matches</h2>
       </div>
+      {dateGroups.length > 0 ? <div className="date-group-list">
+        {dateGroups.map((group) => (
+          <button type="button" className={(activeGroup?.key || "") === group.key ? "date-group-button active-date-group" : "date-group-button"} onClick={() => { setSelectedDateKey(group.key); setSelectedMatchId(""); }} key={group.key}>
+            <strong>{group.label}</strong>
+            <span>{group.matches.length} match{group.matches.length === 1 ? "" : "es"}</span>
+          </button>
+        ))}
+      </div> : null}
       <div className="match-list">
         {upcoming.length === 0 ? (
           <div className="empty-state">
             No upcoming matches scheduled.
           </div>
         ) : null}
-        {upcoming.map((match, index) => (
+        {activeGroup?.matches.map(({ match, index }) => (
           <article className={selectedMatchId === (match.id || `${match.matchNo}-${index}`) ? "match-card expanded-match-card" : "match-card"} key={match.id || `${match.matchNo}-${index}`}>
             <button type="button" className="match-card-button" onClick={() => setSelectedMatchId(selectedMatchId === (match.id || `${match.matchNo}-${index}`) ? "" : (match.id || `${match.matchNo}-${index}`))} aria-expanded={selectedMatchId === (match.id || `${match.matchNo}-${index}`)}>
               <div className="match-card-top">
@@ -279,6 +309,9 @@ function UpcomingMatches({ matches }) {
 function CompletedMatches({ matches }) {
   const completed = asArray(matches);
   const [selectedMatchId, setSelectedMatchId] = useState("");
+  const [selectedDateKey, setSelectedDateKey] = useState("");
+  const dateGroups = getMatchDateGroups(completed);
+  const activeGroup = dateGroups.find((group) => group.key === selectedDateKey) || dateGroups[0];
 
   return (
     <section className="completed">
@@ -286,9 +319,17 @@ function CompletedMatches({ matches }) {
         <CheckCircle2 size={19} />
         <h2>Completed Matches</h2>
       </div>
+      {dateGroups.length > 0 ? <div className="date-group-list">
+        {dateGroups.map((group) => (
+          <button type="button" className={(activeGroup?.key || "") === group.key ? "date-group-button active-date-group" : "date-group-button"} onClick={() => { setSelectedDateKey(group.key); setSelectedMatchId(""); }} key={group.key}>
+            <strong>{group.label}</strong>
+            <span>{group.matches.length} match{group.matches.length === 1 ? "" : "es"}</span>
+          </button>
+        ))}
+      </div> : null}
       <div className="match-list">
         {completed.length === 0 ? <div className="empty-state">No completed matches.</div> : null}
-        {completed.map((match, index) => {
+        {activeGroup?.matches.map(({ match, index }) => {
           const matchKey = match.id || `${match.matchNo}-${index}`;
           const teamAId = match.battingTeamId || "teamA";
           const teamBId = match.bowlingTeamId || "teamB";
@@ -324,7 +365,7 @@ function CompletedMatches({ matches }) {
                 <span><MapPin size={15} /> {match.venue || "Venue not set"}</span>
               </div>
               {!cancelled ? <button type="button" className="completed-details-toggle" onClick={() => setSelectedMatchId(selected ? "" : matchKey)} aria-expanded={selected}>
-                Player details
+                Scorecard details
                 <ChevronDown className="match-card-chevron-inline" size={18} />
               </button> : null}
               {selected && !cancelled ? <CompletedMatchDetails match={match} teamAId={teamAId} teamBId={teamBId} teamA={teamA} teamB={teamB} /> : null}
@@ -347,13 +388,14 @@ function CompletedMatchDetails({ match, teamAId, teamBId, teamA, teamB }) {
       {innings.map(({ teamId, opponentId, team, opponent }) => {
         const score = match.teamScores?.[teamId] || (teamId === match.battingTeamId ? match.score : null);
         const battingRows = asArray(match.inningsScorecards?.[teamId] || (teamId === match.battingTeamId ? match.battingScorecard : [])).filter((player) => player?.name);
-        const bowler = match.inningsBowlers?.[opponentId] || (opponentId === match.bowlingTeamId ? match.bowler : null);
+        const bowlingRows = asArray(match.inningsBowlingScorecards?.[opponentId] || (match.inningsBowlers?.[opponentId] ? [match.inningsBowlers[opponentId]] : opponentId === match.bowlingTeamId && match.bowler ? [match.bowler] : [])).filter((bowler) => bowler?.name);
         return (
           <div className="completed-innings-detail" key={teamId}>
             <div className="completed-innings-title">
               <strong>{team?.name || "Team"} batting</strong>
               {score ? <span>{score.runs ?? 0}/{score.wickets === "" || score.wickets == null ? "-" : score.wickets} {score.overs ? `(${score.overs} ov)` : ""}</span> : null}
             </div>
+            <strong className="completed-detail-label">Batting</strong>
             {battingRows.length > 0 ? <div className="completed-player-table">
               <div className="completed-player-row completed-player-head">
                 <span>Player</span>
@@ -370,10 +412,23 @@ function CompletedMatchDetails({ match, teamAId, teamBId, teamA, teamB }) {
                 <span>{player.sixes ?? 0}</span>
               </div>)}
             </div> : <div className="completed-detail-empty">Player scorecard not available.</div>}
-            {bowler?.name ? <div className="completed-bowler-summary">
-              <strong>{opponent?.shortName || opponent?.name || "Bowling"} bowler: {bowler.name}</strong>
-              <span>{bowler.overs || "0.0"} ov · {bowler.runs ?? 0} runs · {bowler.wickets ?? 0} wkts · Econ {bowler.economy || "0.00"}</span>
-            </div> : null}
+            <strong className="completed-detail-label">{opponent?.shortName || opponent?.name || "Bowling"} bowling</strong>
+            {bowlingRows.length > 0 ? <div className="completed-player-table completed-bowling-table">
+              <div className="completed-player-row completed-player-head">
+                <span>Bowler</span>
+                <span>Ov</span>
+                <span>R</span>
+                <span>W</span>
+                <span>Econ</span>
+              </div>
+              {bowlingRows.map((bowler, index) => <div className="completed-player-row" key={`${opponentId}-${bowler.name}-${index}`}>
+                <span><strong>{bowler.name}</strong></span>
+                <span>{bowler.overs || "0.0"}</span>
+                <span>{bowler.runs ?? 0}</span>
+                <span>{bowler.wickets ?? 0}</span>
+                <span>{bowler.economy || "0.00"}</span>
+              </div>)}
+            </div> : <div className="completed-detail-empty">Bowling scorecard not available.</div>}
           </div>
         );
       })}

@@ -575,6 +575,42 @@ button:disabled {
   gap: 16px;
 }
 
+.date-group-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.date-group-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #334155;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.date-group-button strong {
+  font-size: 0.9rem;
+}
+
+.date-group-button span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.active-date-group {
+  border-color: #0f766e;
+  color: #0f766e;
+  background: #ecfdf5;
+}
+
 .match-card {
   border-radius: 8px;
   padding: 16px;
@@ -761,8 +797,7 @@ button:disabled {
   gap: 10px;
 }
 
-.completed-innings-title,
-.completed-bowler-summary {
+.completed-innings-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -770,11 +805,17 @@ button:disabled {
 }
 
 .completed-innings-title span,
-.completed-bowler-summary span,
 .completed-detail-empty {
   color: #64748b;
   font-size: 0.84rem;
   font-weight: 750;
+}
+
+.completed-detail-label {
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .completed-player-table {
@@ -815,13 +856,6 @@ button:disabled {
   color: #be123c;
   font-size: 0.72rem;
   font-weight: 850;
-}
-
-.completed-bowler-summary {
-  border: 1px solid #e6ebf2;
-  border-radius: 8px;
-  padding: 9px 10px;
-  background: #f8fafc;
 }
 
 code {
@@ -1434,8 +1468,7 @@ code {
     font-size: 0.86rem;
   }
 
-  .completed-innings-title,
-  .completed-bowler-summary {
+  .completed-innings-title {
     align-items: flex-start;
     flex-direction: column;
   }
