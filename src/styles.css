@@ -1481,6 +1481,15 @@ code {
   gap: 10px !important;
 }
 
+.completed-match-details-editor {
+  grid-column: 1 / -1;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px !important;
+  border-bottom: 1px solid #e6ebf2;
+  padding-bottom: 12px;
+}
+
 .completed-winner-field {
   grid-column: 1 / -1;
 }
@@ -1544,7 +1553,8 @@ code {
 
   .team-score-editor,
   .completed-score-editor,
-  .completed-team-score-editor {
+  .completed-team-score-editor,
+  .completed-match-details-editor {
     grid-template-columns: 1fr;
   }
 
