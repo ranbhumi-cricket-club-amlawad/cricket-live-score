@@ -1396,6 +1396,43 @@ code {
   flex-wrap: wrap;
 }
 
+.upcoming-confirmation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 12px 0;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f0f9ff;
+}
+
+.upcoming-confirmation > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.upcoming-confirmation > div:last-child {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.upcoming-confirmation span {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.upcoming-confirmation.confirm-danger {
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.upcoming-confirmation.confirm-danger strong {
+  color: #9f1239;
+}
+
 .completed-admin-list {
   display: grid;
   gap: 10px;
@@ -1570,6 +1607,11 @@ code {
   }
 
   .batting-team-picker {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .upcoming-confirmation {
     align-items: stretch;
     flex-direction: column;
   }

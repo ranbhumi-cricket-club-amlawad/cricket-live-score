@@ -406,6 +406,7 @@ export function AdminPage() {
   const [scoreboard, setScoreboard] = useState(() => cloneScoreboard(sampleScoreboard));
   const [selectedUpcomingId, setSelectedUpcomingId] = useState("");
   const [pendingLiveMatchId, setPendingLiveMatchId] = useState("");
+  const [pendingUpcomingAction, setPendingUpcomingAction] = useState(null);
   const [pendingWicketLabel, setPendingWicketLabel] = useState("");
   const [showUpcomingMatches, setShowUpcomingMatches] = useState(false);
   const [showCompletedMatches, setShowCompletedMatches] = useState(false);
@@ -650,6 +651,7 @@ export function AdminPage() {
 
   function makeUpcomingMatchLive(index, battingTeamId) {
     setPendingLiveMatchId("");
+    setPendingUpcomingAction(null);
     return updateDraftAndSave((draft) => {
       const upcoming = draft.upcomingMatches[index];
       if (!upcoming) return;
@@ -1279,11 +1281,27 @@ export function AdminPage() {
                     <span>{upcoming.teamA?.name || "Team A"} vs {upcoming.teamB?.name || "Team B"} · {formatMatchSchedule(upcoming.date, upcoming.time) || "Date pending"}</span>
                   </button>
                   <div className="upcoming-admin-actions">
-                    <button type="button" className="primary-button" onClick={() => setPendingLiveMatchId(pendingLiveMatchId === upcoming.id ? "" : upcoming.id)} disabled={isAutoSaving}>Make Live</button>
-                    <button type="button" className="secondary-button" onClick={() => cancelUpcomingMatch(index)} disabled={isAutoSaving}>Cancel</button>
-                    <button type="button" className="danger-button" onClick={() => removeUpcomingMatch(index)}>Remove</button>
+                    <button type="button" className="primary-button" onClick={() => { setPendingLiveMatchId(""); setPendingUpcomingAction({ matchId: upcoming.id, action: "live", index }); }} disabled={isAutoSaving}>Make Live</button>
+                    <button type="button" className="secondary-button" onClick={() => { setPendingLiveMatchId(""); setPendingUpcomingAction({ matchId: upcoming.id, action: "cancel", index }); }} disabled={isAutoSaving}>Cancel</button>
+                    <button type="button" className="danger-button" onClick={() => { setPendingLiveMatchId(""); setPendingUpcomingAction({ matchId: upcoming.id, action: "remove", index }); }} disabled={isAutoSaving}>Remove</button>
                   </div>
                 </div>
+                {pendingUpcomingAction?.matchId === upcoming.id ? <div className={`upcoming-confirmation ${pendingUpcomingAction.action === "live" ? "confirm-live" : "confirm-danger"}`}>
+                  <div>
+                    <strong>Are you sure you want to {pendingUpcomingAction.action === "live" ? "make this match live" : `${pendingUpcomingAction.action} this match`}?</strong>
+                    <span>{upcoming.matchNo || `Match ${index + 1}`} · {upcoming.teamA?.name || "Team A"} vs {upcoming.teamB?.name || "Team B"}</span>
+                  </div>
+                  <div>
+                    <button type="button" className={pendingUpcomingAction.action === "remove" ? "danger-button" : "primary-button"} onClick={() => {
+                      const action = pendingUpcomingAction.action;
+                      setPendingUpcomingAction(null);
+                      if (action === "live") setPendingLiveMatchId(upcoming.id);
+                      if (action === "cancel") cancelUpcomingMatch(index);
+                      if (action === "remove") removeUpcomingMatch(index);
+                    }} disabled={isAutoSaving}>Yes, confirm</button>
+                    <button type="button" className="secondary-button" onClick={() => setPendingUpcomingAction(null)} disabled={isAutoSaving}>No, keep match</button>
+                  </div>
+                </div> : null}
                 {pendingLiveMatchId === upcoming.id ? <div className="batting-team-picker">
                   <div>
                     <strong>Which team will bat first?</strong>
