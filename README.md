@@ -86,6 +86,7 @@ The admin page can update:
 - Completed matches can also be added manually with match details, team names, scores, and winner
 - Upcoming and completed admin sections are collapsed by default and open when their section heading is selected
 - Completed matches can save a winning team, which is highlighted on the public scoreboard
+- Select a completed match to edit it, remove it, or make it live again. A first-innings match is restored at innings break so the remaining team can start the second innings.
 - Live match status, target, score, wickets, overs, and rates
 - Batting and bowling team details
 - Batter and bowler player details

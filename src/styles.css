@@ -1440,21 +1440,20 @@ code {
 
 .completed-admin-row {
   min-height: 58px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: 12px;
   border: 1px solid #e6ebf2;
   border-radius: 8px;
   padding: 10px 12px;
 }
 
-.completed-admin-row div {
+.completed-admin-row > div {
   display: grid;
   gap: 3px;
 }
 
-.completed-admin-row span {
+.completed-admin-row small,
+.completed-live-confirmation span {
   color: #64748b;
   font-size: 0.82rem;
 }
@@ -1471,14 +1470,60 @@ code {
 }
 
 .completed-admin-summary {
-  min-width: 150px;
+  min-width: 0;
+}
+
+.completed-admin-select {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  padding: 2px;
+  color: #172033;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.completed-admin-select span {
+  display: grid;
+  gap: 3px;
+}
+
+.completed-admin-select svg {
+  flex: 0 0 auto;
+  transition: transform 160ms ease;
+}
+
+.completed-admin-select[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.selected-completed-admin {
+  border-color: #94a3b8;
 }
 
 .completed-score-editor {
-  flex: 1;
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px !important;
+}
+
+.completed-admin-actions,
+.completed-live-confirmation > div {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 8px !important;
+}
+
+.completed-live-confirmation {
+  gap: 8px !important;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f0fdf4;
 }
 
 .completed-match-details-editor {

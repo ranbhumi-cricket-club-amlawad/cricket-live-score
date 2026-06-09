@@ -424,6 +424,8 @@ export function AdminPage() {
   const [pendingWicketLabel, setPendingWicketLabel] = useState("");
   const [showUpcomingMatches, setShowUpcomingMatches] = useState(false);
   const [showCompletedMatches, setShowCompletedMatches] = useState(false);
+  const [selectedCompletedId, setSelectedCompletedId] = useState("");
+  const [pendingCompletedLiveId, setPendingCompletedLiveId] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -690,6 +692,7 @@ export function AdminPage() {
   function addCompletedMatch() {
     const matchId = `completed-${Date.now()}`;
     setShowCompletedMatches(true);
+    setSelectedCompletedId(matchId);
     updateDraft((draft) => {
       draft.completedMatches.unshift({
         id: matchId,
@@ -804,6 +807,27 @@ export function AdminPage() {
     return updateDraftAndSave((draft) => {
       draft.completedMatches.splice(index, 1);
     }, "Completed match removed.");
+  }
+
+  async function makeCompletedMatchLiveAgain(index) {
+    if (hasCurrentMatch) {
+      setError("Remove or finish the current match before restoring a completed match.");
+      return;
+    }
+    const completed = scoreboard.completedMatches[index];
+    const restoreAtInningsBreak = toNumber(completed?.inningsNumber) === 1;
+    setPendingCompletedLiveId("");
+    await updateDraftAndSave((draft) => {
+      const restored = draft.completedMatches[index];
+      if (!restored) return;
+      delete restored.completedAt;
+      delete restored.winnerTeamId;
+      restored.status = restoreAtInningsBreak ? "INNINGS BREAK" : "LIVE";
+      restored.lastUpdated = new Date().toISOString();
+      draft.currentMatch = restored;
+      draft.completedMatches.splice(index, 1);
+    }, restoreAtInningsBreak ? "Match restored at innings break. Start the second innings when ready." : "Match is live again.");
+    setSelectedCompletedId("");
   }
 
   function startSecondInnings() {
@@ -1451,13 +1475,20 @@ export function AdminPage() {
             {scoreboard.completedMatches.length === 0 ? <div className="empty-state">No completed or cancelled matches.</div> : null}
             {scoreboard.completedMatches.map((completed, index) => {
               const completedTeamIds = completed.teams ? Object.keys(completed.teams) : ["teamA", "teamB"].filter((teamId) => completed[teamId]);
+              const completedId = completed.id || `${completed.matchNo}-${index}`;
+              const isSelected = selectedCompletedId === completedId;
+              const isCancelled = String(completed.status || "").toUpperCase() === "CANCELLED";
+              const restoreAtInningsBreak = toNumber(completed.inningsNumber) === 1;
               return (
-              <div className="completed-admin-row completed-admin-score-row" key={completed.id || `${completed.matchNo}-${index}`}>
-                <div className="completed-admin-summary">
-                  <strong>{completed.matchNo || `Match ${index + 1}`}</strong>
-                  <span>{completed.status} · {completed.teams ? `${completed.teams[completed.battingTeamId]?.name || "Team A"} vs ${completed.teams[completed.bowlingTeamId]?.name || "Team B"}` : `${completed.teamA?.name || "Team A"} vs ${completed.teamB?.name || "Team B"}`}</span>
-                </div>
-                {String(completed.status || "").toUpperCase() !== "CANCELLED" ? <div className="completed-score-editor">
+              <div className={isSelected ? "completed-admin-row completed-admin-score-row selected-completed-admin" : "completed-admin-row completed-admin-score-row"} key={completedId}>
+                <button type="button" className="completed-admin-summary completed-admin-select" onClick={() => { setSelectedCompletedId(isSelected ? "" : completedId); setPendingCompletedLiveId(""); }} aria-expanded={isSelected}>
+                  <span>
+                    <strong>{completed.matchNo || `Match ${index + 1}`}</strong>
+                    <small>{completed.status} · {completed.teams ? `${completed.teams[completed.battingTeamId]?.name || "Team A"} vs ${completed.teams[completed.bowlingTeamId]?.name || "Team B"}` : `${completed.teamA?.name || "Team A"} vs ${completed.teamB?.name || "Team B"}`}</small>
+                  </span>
+                  <ChevronDown size={18} />
+                </button>
+                {isSelected && !isCancelled ? <div className="completed-score-editor">
                   <div className="completed-match-details-editor">
                     <Field label="Match no" value={completed.matchNo} onChange={(value) => updateCompletedMatch(index, "matchNo", value)} />
                     <Field label="Date" type="date" value={completed.date} onChange={(value) => updateCompletedMatch(index, "date", value)} />
@@ -1482,7 +1513,18 @@ export function AdminPage() {
                     </select>
                   </label>
                 </div> : null}
-                <button type="button" className="danger-button" onClick={() => removeCompletedMatch(index)} disabled={isAutoSaving}>Remove</button>
+                {isSelected && pendingCompletedLiveId === completedId ? <div className="completed-live-confirmation">
+                  <strong>{restoreAtInningsBreak ? "Restore this match at innings break?" : "Make this completed match live again?"}</strong>
+                  <span>{restoreAtInningsBreak ? "The saved first innings will remain visible. Use Start Second Innings when the remaining team is ready to bat." : "The saved score and player details will become the current live match."}</span>
+                  <div>
+                    <button type="button" className="primary-button" onClick={() => makeCompletedMatchLiveAgain(index)} disabled={isAutoSaving}>Confirm Make Live</button>
+                    <button type="button" className="secondary-button" onClick={() => setPendingCompletedLiveId("")} disabled={isAutoSaving}>Close</button>
+                  </div>
+                </div> : null}
+                {isSelected ? <div className="completed-admin-actions">
+                  {!isCancelled && pendingCompletedLiveId !== completedId ? <button type="button" className="primary-button" onClick={() => setPendingCompletedLiveId(completedId)} disabled={isAutoSaving || hasCurrentMatch} title={hasCurrentMatch ? "Remove or finish the current match first" : ""}>Make Live Again</button> : null}
+                  <button type="button" className="danger-button" onClick={() => removeCompletedMatch(index)} disabled={isAutoSaving}>Remove</button>
+                </div> : null}
               </div>
               );
             })}
