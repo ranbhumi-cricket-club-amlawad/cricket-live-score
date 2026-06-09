@@ -246,6 +246,13 @@ function LiveMatch({ match }) {
           <CurrentOver match={match} />
         </div>
       </div>
+      <div className="live-squads">
+        <h2>Playing Squads</h2>
+        <div className="live-squad-grid">
+          <PlayerList title={battingTeam?.name || "Batting Team"} players={battingTeam?.players} />
+          <PlayerList title={bowlingTeam?.name || "Bowling Team"} players={bowlingTeam?.players} />
+        </div>
+      </div>
     </section>
   );
 }
