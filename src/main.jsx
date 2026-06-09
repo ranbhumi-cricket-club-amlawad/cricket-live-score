@@ -339,6 +339,7 @@ function CompletedMatches({ matches }) {
           const teamBScore = match.teamScores?.[teamBId] || (Number(match.target) > 0 ? { runs: Math.max(0, Number(match.target) - 1), wickets: "", overs: "" } : null);
           const cancelled = String(match.status || "").toUpperCase() === "CANCELLED";
           const selected = selectedMatchId === matchKey;
+          const winnerTeam = match.winnerTeamId === teamAId ? teamA : match.winnerTeamId === teamBId ? teamB : null;
           return (
             <article className={selected ? "match-card completed-match-card expanded-match-card" : "match-card completed-match-card"} key={matchKey}>
               <div className="match-card-top">
@@ -350,13 +351,14 @@ function CompletedMatches({ matches }) {
                 <b>v</b>
                 <span>{teamB.name || "Team B"}</span>
               </div>
+              {winnerTeam ? <div className="match-winner-banner"><Trophy size={16} /><strong>{winnerTeam.name || winnerTeam.shortName || "Winner"} won</strong></div> : null}
               {!cancelled ? <div className="completed-team-scores">
-                <div>
-                  <strong>{teamA.shortName || teamA.name || "Team A"}</strong>
+                <div className={match.winnerTeamId === teamAId ? "winner-team-score" : ""}>
+                  <strong>{teamA.shortName || teamA.name || "Team A"}{match.winnerTeamId === teamAId ? <small className="winner-badge">Winner</small> : null}</strong>
                   <span>{teamAScore ? `${teamAScore.runs ?? 0}/${teamAScore.wickets === "" || teamAScore.wickets == null ? "-" : teamAScore.wickets}` : "Score not entered"} {teamAScore?.overs ? <small>({teamAScore.overs} ov)</small> : null}</span>
                 </div>
-                <div>
-                  <strong>{teamB.shortName || teamB.name || "Team B"}</strong>
+                <div className={match.winnerTeamId === teamBId ? "winner-team-score" : ""}>
+                  <strong>{teamB.shortName || teamB.name || "Team B"}{match.winnerTeamId === teamBId ? <small className="winner-badge">Winner</small> : null}</strong>
                   <span>{teamBScore ? `${teamBScore.runs ?? 0}/${teamBScore.wickets === "" || teamBScore.wickets == null ? "-" : teamBScore.wickets}` : "Score not entered"} {teamBScore?.overs ? <small>({teamBScore.overs} ov)</small> : null}</span>
                 </div>
               </div> : null}

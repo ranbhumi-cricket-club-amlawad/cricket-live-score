@@ -81,6 +81,8 @@ The admin page can update:
 - Upcoming matches appear first; use `Make Live`, then select which team bats first
 - Use `Start Second Innings` after the first innings to preserve its score, swap batting/fielding teams, set the target, and initialize the other team's players
 - Completed and cancelled matches are retained until an admin removes them
+- Upcoming and completed admin sections are collapsed by default and open when their section heading is selected
+- Completed matches can save a winning team, which is highlighted on the public scoreboard
 - Live match status, target, score, wickets, overs, and rates
 - Batting and bowling team details
 - Batter and bowler player details
@@ -123,6 +125,7 @@ Main fields:
 - `currentMatch.inningsBowlingScorecards`: archived bowling scorecards for completed innings.
 - `upcomingMatches`: upcoming match list with teams, date, time, and venue.
 - `completedMatches`: completed and cancelled match history.
+- `completedMatches[].winnerTeamId`: optional winning team identifier displayed on completed match cards.
 - `liveUsers`: anonymous presence records containing only a Firebase server-generated `lastSeen` timestamp.
 
 ## 6. GitHub Setup

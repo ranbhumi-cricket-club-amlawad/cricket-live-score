@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowLeftRight, CalendarPlus, LogOut, Minus, Plus, Save, ShieldCheck, Trophy, Zap } from "lucide-react";
+import { ArrowLeftRight, CalendarPlus, ChevronDown, LogOut, Minus, Plus, Save, ShieldCheck, Trophy, Zap } from "lucide-react";
 import { formatMatchSchedule } from "./dateFormat";
 import { fetchScoreboard, hasFirebaseConfig, updateScoreboard } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
@@ -407,6 +407,8 @@ export function AdminPage() {
   const [selectedUpcomingId, setSelectedUpcomingId] = useState("");
   const [pendingLiveMatchId, setPendingLiveMatchId] = useState("");
   const [pendingWicketLabel, setPendingWicketLabel] = useState("");
+  const [showUpcomingMatches, setShowUpcomingMatches] = useState(false);
+  const [showCompletedMatches, setShowCompletedMatches] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -615,6 +617,7 @@ export function AdminPage() {
 
   function addUpcomingMatch() {
     const matchId = `match-${Date.now()}`;
+    setShowUpcomingMatches(true);
     updateDraft((draft) => {
       draft.upcomingMatches.push({
         id: matchId,
@@ -766,6 +769,12 @@ export function AdminPage() {
       completed.teamScores = { ...(completed.teamScores || {}) };
       completed.teamScores[teamId] = { runs: 0, wickets: 0, overs: "0.0", ...(completed.teamScores[teamId] || {}), [field]: field === "overs" ? value : toNumber(value) };
     });
+  }
+
+  function updateCompletedWinner(index, winnerTeamId) {
+    return updateDraftAndSave((draft) => {
+      draft.completedMatches[index].winnerTeamId = winnerTeamId;
+    }, winnerTeamId ? "Match winner updated." : "Match winner cleared.");
   }
 
   async function updateDraftAndSave(updater, successMessage = "Saved to Firebase.") {
@@ -1184,13 +1193,19 @@ export function AdminPage() {
 
         <section className="admin-card admin-card-wide admin-upcoming-card">
           <div className="card-heading-row">
-            <h2>Upcoming Matches</h2>
+            <button type="button" className="admin-section-toggle" onClick={() => setShowUpcomingMatches((current) => !current)} aria-expanded={showUpcomingMatches}>
+              <span>
+                <strong>Upcoming Matches</strong>
+                <small>{scoreboard.upcomingMatches.length} match{scoreboard.upcomingMatches.length === 1 ? "" : "es"}</small>
+              </span>
+              <ChevronDown size={19} />
+            </button>
             <button type="button" className="secondary-button" onClick={addUpcomingMatch}>
               <CalendarPlus size={16} />
               Add Match
             </button>
           </div>
-          <div className="upcoming-admin-list">
+          {showUpcomingMatches ? <div className="upcoming-admin-list">
             {scoreboard.upcomingMatches.length === 0 ? (
               <div className="empty-state">
                 No upcoming matches added.
@@ -1238,17 +1253,23 @@ export function AdminPage() {
                 </> : null}
               </div>
             ))}
-          </div>
+          </div> : null}
         </section>
 
         <section className="admin-card admin-card-wide admin-completed-card">
           <div className="card-heading-row">
-            <h2>Completed / Cancelled Matches</h2>
+            <button type="button" className="admin-section-toggle" onClick={() => setShowCompletedMatches((current) => !current)} aria-expanded={showCompletedMatches}>
+              <span>
+                <strong>Completed / Cancelled Matches</strong>
+                <small>{scoreboard.completedMatches.length} match{scoreboard.completedMatches.length === 1 ? "" : "es"}</small>
+              </span>
+              <ChevronDown size={19} />
+            </button>
           </div>
-          <div className="completed-admin-list">
+          {showCompletedMatches ? <div className="completed-admin-list">
             {scoreboard.completedMatches.length === 0 ? <div className="empty-state">No completed or cancelled matches.</div> : null}
             {scoreboard.completedMatches.map((completed, index) => {
-              const completedTeamIds = completed.teams ? Object.keys(completed.teams) : [];
+              const completedTeamIds = completed.teams ? Object.keys(completed.teams) : ["teamA", "teamB"].filter((teamId) => completed[teamId]);
               return (
               <div className="completed-admin-row completed-admin-score-row" key={completed.id || `${completed.matchNo}-${index}`}>
                 <div className="completed-admin-summary">
@@ -1257,17 +1278,24 @@ export function AdminPage() {
                 </div>
                 {String(completed.status || "").toUpperCase() !== "CANCELLED" ? <div className="completed-score-editor">
                   {completedTeamIds.map((teamId) => <div className="completed-team-score-editor" key={teamId}>
-                    <strong>{completed.teams[teamId]?.shortName || completed.teams[teamId]?.name || teamId}</strong>
+                    <strong>{completed.teams?.[teamId]?.shortName || completed.teams?.[teamId]?.name || completed[teamId]?.shortName || completed[teamId]?.name || teamId}</strong>
                     <Field label="Runs" type="number" min="0" value={completed.teamScores?.[teamId]?.runs ?? ""} onChange={(value) => updateCompletedTeamScore(index, teamId, "runs", value)} />
                     <Field label="Wickets" type="number" min="0" value={completed.teamScores?.[teamId]?.wickets ?? ""} onChange={(value) => updateCompletedTeamScore(index, teamId, "wickets", value)} />
                     <Field label="Overs" value={completed.teamScores?.[teamId]?.overs ?? ""} onChange={(value) => updateCompletedTeamScore(index, teamId, "overs", value)} />
                   </div>)}
+                  <label className="field completed-winner-field">
+                    <span>Winner</span>
+                    <select value={completed.winnerTeamId || ""} onChange={(event) => updateCompletedWinner(index, event.target.value)} disabled={isAutoSaving}>
+                      <option value="">Not selected</option>
+                      {completedTeamIds.map((teamId) => <option value={teamId} key={teamId}>{completed.teams?.[teamId]?.name || completed[teamId]?.name || teamId}</option>)}
+                    </select>
+                  </label>
                 </div> : null}
                 <button type="button" className="danger-button" onClick={() => removeCompletedMatch(index)} disabled={isAutoSaving}>Remove</button>
               </div>
               );
             })}
-          </div>
+          </div> : null}
         </section>
 
         <div className="sticky-save">

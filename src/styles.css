@@ -777,6 +777,35 @@ button:disabled {
   font-weight: 700;
 }
 
+.match-winner-banner {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  padding: 9px 10px;
+  color: #166534;
+  background: #f0fdf4;
+}
+
+.winner-team-score {
+  border-color: #86efac !important;
+  background: #f0fdf4 !important;
+}
+
+.completed-team-scores .winner-badge {
+  display: inline-flex;
+  margin-left: 7px;
+  border-radius: 999px;
+  padding: 2px 6px;
+  color: #166534;
+  background: #dcfce7;
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .completed-details-toggle {
   width: 100%;
   min-height: 38px;
@@ -1252,6 +1281,43 @@ code {
   margin: 0;
 }
 
+.admin-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  padding: 0;
+  color: #172033;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-section-toggle span {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-section-toggle strong {
+  font-size: 1.08rem;
+}
+
+.admin-section-toggle small {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.admin-section-toggle svg {
+  color: #64748b;
+  transition: transform 160ms ease;
+}
+
+.admin-section-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
 .upcoming-admin-list {
   display: grid;
   gap: 16px;
@@ -1338,6 +1404,10 @@ code {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px !important;
+}
+
+.completed-winner-field {
+  grid-column: 1 / -1;
 }
 
 .completed-team-score-editor {
