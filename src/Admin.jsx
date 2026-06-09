@@ -312,11 +312,11 @@ function shouldSwitchStrike(event) {
   return completedRuns % 2 === 1;
 }
 
-function Field({ label, value, onChange, type = "text", min }) {
+function Field({ label, value, onChange, onBlur, type = "text", min }) {
   return (
     <label className="field">
       <span>{label}</span>
-      <input type={type} min={min} value={value ?? ""} onChange={(event) => onChange(event.target.value)} />
+      <input type={type} min={min} value={value ?? ""} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} />
     </label>
   );
 }
@@ -474,9 +474,38 @@ export function AdminPage() {
   }
 
   function updateTeamPlayers(teamId, players) {
-    updateDraft((draft) => {
-      draft.currentMatch.teams[teamId].players = normalizePlayerList(players, []);
-    });
+    return updateDraftAndSave((draft) => {
+      const match = draft.currentMatch;
+      const team = match.teams[teamId];
+      const normalizedPlayers = normalizePlayerList(players, []);
+      team.players = normalizedPlayers;
+      if (teamId === match.battingTeamId) {
+        asArray(match.batters, []).forEach((batter, index) => {
+          const replacementName = normalizedPlayers[index];
+          const isPlaceholder = / Player [12]$/.test(String(batter?.name || ""));
+          if (!replacementName || !isPlaceholder) return;
+          const previousName = batter.name;
+          batter.name = replacementName;
+          batter.team = team.name;
+          const scorecardPlayer = asArray(match.battingScorecard, []).find((player) => player.name === previousName);
+          if (scorecardPlayer) Object.assign(scorecardPlayer, { name: replacementName, team: team.name });
+        });
+        syncBattingScorecard(match);
+      }
+      if (teamId === match.bowlingTeamId) {
+        const replacementName = normalizedPlayers[0];
+        const bowler = match.bowler || {};
+        const isPlaceholder = / Bowler$/.test(String(bowler.name || ""));
+        if (replacementName && isPlaceholder) {
+          const previousName = bowler.name;
+          bowler.name = replacementName;
+          bowler.team = team.name;
+          const scorecardBowler = asArray(match.bowlingScorecard, []).find((player) => player.name === previousName);
+          if (scorecardBowler) Object.assign(scorecardBowler, { name: replacementName, team: team.name });
+        }
+        syncBowlingScorecard(match);
+      }
+    }, "Live team players updated.");
   }
 
   function updateTeamScore(teamId, field, value) {
@@ -1128,22 +1157,22 @@ export function AdminPage() {
                   <h3>{index === 0 ? "Striker" : "Non-striker"}</h3>
                   {batter.dismissed ? <span className="out-badge">Out</span> : index === 0 ? <span className="strike-badge">On strike</span> : <button type="button" className="strike-button" onClick={() => setBatterOnStrike(index)} disabled={isAutoSaving}>Set on strike</button>}
                 </div>
-                <Field label="Name" value={batter.name} onChange={(value) => updateBatter(index, "name", value)} />
-                <Field label="Team" value={batter.team} onChange={(value) => updateBatter(index, "team", value)} />
-                <Field label="Runs" type="number" min="0" value={batter.runs} onChange={(value) => updateBatter(index, "runs", value)} />
-                <Field label="Balls" type="number" min="0" value={batter.balls} onChange={(value) => updateBatter(index, "balls", value)} />
-                <Field label="Fours" type="number" min="0" value={batter.fours} onChange={(value) => updateBatter(index, "fours", value)} />
-                <Field label="Sixes" type="number" min="0" value={batter.sixes} onChange={(value) => updateBatter(index, "sixes", value)} />
+                <Field label="Name" value={batter.name} onChange={(value) => updateBatter(index, "name", value)} onBlur={saveScoreboard} />
+                <Field label="Team" value={batter.team} onChange={(value) => updateBatter(index, "team", value)} onBlur={saveScoreboard} />
+                <Field label="Runs" type="number" min="0" value={batter.runs} onChange={(value) => updateBatter(index, "runs", value)} onBlur={saveScoreboard} />
+                <Field label="Balls" type="number" min="0" value={batter.balls} onChange={(value) => updateBatter(index, "balls", value)} onBlur={saveScoreboard} />
+                <Field label="Fours" type="number" min="0" value={batter.fours} onChange={(value) => updateBatter(index, "fours", value)} onBlur={saveScoreboard} />
+                <Field label="Sixes" type="number" min="0" value={batter.sixes} onChange={(value) => updateBatter(index, "sixes", value)} onBlur={saveScoreboard} />
               </div>
             ))}
             <div className="mini-panel">
               <h3>Bowler</h3>
-              <Field label="Name" value={match.bowler.name} onChange={(value) => updateBowler("name", value)} />
-              <Field label="Team" value={match.bowler.team} onChange={(value) => updateBowler("team", value)} />
-              <Field label="Overs" value={match.bowler.overs} onChange={(value) => updateBowler("overs", value)} />
-              <Field label="Runs" type="number" min="0" value={match.bowler.runs} onChange={(value) => updateBowler("runs", value)} />
-              <Field label="Wickets" type="number" min="0" value={match.bowler.wickets} onChange={(value) => updateBowler("wickets", value)} />
-              <Field label="Economy" value={match.bowler.economy} onChange={(value) => updateBowler("economy", value)} />
+              <Field label="Name" value={match.bowler.name} onChange={(value) => updateBowler("name", value)} onBlur={saveScoreboard} />
+              <Field label="Team" value={match.bowler.team} onChange={(value) => updateBowler("team", value)} onBlur={saveScoreboard} />
+              <Field label="Overs" value={match.bowler.overs} onChange={(value) => updateBowler("overs", value)} onBlur={saveScoreboard} />
+              <Field label="Runs" type="number" min="0" value={match.bowler.runs} onChange={(value) => updateBowler("runs", value)} onBlur={saveScoreboard} />
+              <Field label="Wickets" type="number" min="0" value={match.bowler.wickets} onChange={(value) => updateBowler("wickets", value)} onBlur={saveScoreboard} />
+              <Field label="Economy" value={match.bowler.economy} onChange={(value) => updateBowler("economy", value)} onBlur={saveScoreboard} />
             </div>
           </div>
           <TextAreaField

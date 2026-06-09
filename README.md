@@ -84,6 +84,7 @@ The admin page can update:
 - Live match status, target, score, wickets, overs, and rates
 - Batting and bowling team details
 - Batter and bowler player details
+- Applying live team player lists immediately saves to Firebase and replaces generated player placeholders while keeping their existing score
 - Recent balls
 - Upcoming matches
 - Current striker, non-striker, and bowler from team squads
