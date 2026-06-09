@@ -92,6 +92,7 @@ The admin page can update:
 - Current striker, non-striker, and bowler from team squads
 - Upcoming match player lists
 - Ball events: legal runs, wicket, run out, wide, no-ball, byes, leg byes, penalty runs, and free-hit state
+- `Undo Last Ball` restores the score, over, batters, bowler, extras, wickets, strike, and calculated rates from before the most recent recorded ball
 - Wicket and run-out actions require selecting the dismissed player; dismissed players are marked out and removed from striker selection
 
 Important: this hard-coded login is only a simple frontend gate. It is not real security because browser code can be inspected. The included `database.rules.json` allows public writes to `/scoreboard` so this demo admin panel can save directly from GitHub Pages. For a production tournament, use Firebase Authentication or a backend API before sharing the admin URL publicly.

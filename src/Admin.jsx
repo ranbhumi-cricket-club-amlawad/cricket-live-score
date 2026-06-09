@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowLeftRight, CalendarPlus, ChevronDown, LogOut, Minus, Plus, Save, ShieldCheck, Trophy, Zap } from "lucide-react";
+import { ArrowLeftRight, CalendarPlus, ChevronDown, LogOut, Minus, Plus, Save, ShieldCheck, Trophy, Undo2, Zap } from "lucide-react";
 import { formatMatchSchedule } from "./dateFormat";
 import { fetchScoreboard, hasFirebaseConfig, updateScoreboard } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
@@ -809,6 +809,7 @@ export function AdminPage() {
       const score = match.score;
       const striker = match.batters[0];
       const bowler = match.bowler;
+      const beforeState = JSON.parse(JSON.stringify({ score: match.score, batters: match.batters, battingScorecard: match.battingScorecard, bowler: match.bowler, bowlingScorecard: match.bowlingScorecard, extras: match.extras, freeHit: match.freeHit, recentBalls: match.recentBalls, teamScores: match.teamScores }));
       let overCompleted = false;
 
       score.runs = toNumber(score.runs) + toNumber(event.totalRuns);
@@ -856,6 +857,8 @@ export function AdminPage() {
           legal: event.legal,
           wicket: Boolean(event.wicket),
           dismissedPlayer: event.wicket ? dismissedPlayerName || striker.name : "",
+          bowler: bowler.name,
+          beforeState,
           time: new Date().toISOString()
         },
         ...(match.ballHistory || [])
@@ -889,6 +892,58 @@ export function AdminPage() {
     const label = pendingWicketLabel || "W";
     setPendingWicketLabel("");
     return applyBall(label, playerName);
+  }
+
+  function undoLastBall() {
+    return updateDraftAndSave((draft) => {
+      const match = draft.currentMatch;
+      const lastAction = asArray(match.ballHistory, [])[0];
+      if (!lastAction) return;
+      if (lastAction.beforeState) {
+        const before = lastAction.beforeState;
+        match.score = before.score;
+        match.batters = before.batters;
+        match.battingScorecard = before.battingScorecard;
+        match.bowler = before.bowler;
+        match.bowlingScorecard = before.bowlingScorecard;
+        match.extras = before.extras;
+        match.freeHit = before.freeHit;
+        match.recentBalls = before.recentBalls;
+        match.teamScores = before.teamScores;
+        match.ballHistory = asArray(match.ballHistory, []).slice(1);
+        return;
+      }
+      const event = BALL_EVENTS.find((item) => item.label === lastAction.label);
+      if (!event) return;
+      const overCompleted = event.legal && String(match.score.overs || "0.0").split(".")[1] === "0" && match.score.overs !== "0.0";
+      if (overCompleted) switchStrike(match);
+      if (shouldSwitchStrike(event)) switchStrike(match);
+      const striker = asArray(match.batters, []).find((player) => player.name === lastAction.striker) || match.batters[0];
+      match.score.runs = Math.max(0, toNumber(match.score.runs) - toNumber(event.totalRuns));
+      match.bowler.runs = Math.max(0, toNumber(match.bowler.runs) - toNumber(event.bowlerRuns));
+      if (event.extraType) match.extras[event.extraType] = Math.max(0, toNumber(match.extras?.[event.extraType]) - toNumber(event.extraRuns));
+      if (event.batterRuns) {
+        striker.runs = Math.max(0, toNumber(striker.runs) - toNumber(event.batterRuns));
+        if (event.batterRuns === 4) striker.fours = Math.max(0, toNumber(striker.fours) - 1);
+        if (event.batterRuns === 6) striker.sixes = Math.max(0, toNumber(striker.sixes) - 1);
+      }
+      if (event.wicket) {
+        match.score.wickets = Math.max(0, toNumber(match.score.wickets) - 1);
+        if (event.bowlerWicket) match.bowler.wickets = Math.max(0, toNumber(match.bowler.wickets) - 1);
+        const scorecardPlayer = asArray(match.battingScorecard, []).find((player) => player.name === lastAction.dismissedPlayer);
+        const activePlayer = asArray(match.batters, []).find((player) => player.name === lastAction.dismissedPlayer);
+        if (scorecardPlayer) Object.assign(scorecardPlayer, { dismissed: false, role: "Played" });
+        if (activePlayer) Object.assign(activePlayer, { dismissed: false, role: activePlayer === match.batters[0] ? "Striker" : "Non-striker" });
+      }
+      if (event.strikerBall) striker.balls = Math.max(0, toNumber(striker.balls) - 1);
+      if (event.legal) removeLegalBall(match);
+      striker.strikeRate = calculateStrikeRate(toNumber(striker.runs), toNumber(striker.balls));
+      match.freeHit = Boolean(BALL_EVENTS.find((item) => item.label === match.ballHistory?.[1]?.label)?.freeHit);
+      match.recentBalls = asArray(match.recentBalls, []).slice(1);
+      match.ballHistory = asArray(match.ballHistory, []).slice(1);
+      syncBattingScorecard(match);
+      syncBowlingScorecard(match);
+    }, "Last ball undone.");
   }
 
   function removeWicket() {
@@ -971,6 +1026,7 @@ export function AdminPage() {
   const wicketCandidates = match.batters.filter((player) => player?.name && !player.dismissed);
   const hasCurrentMatch = !["", "NONE", "UPCOMING"].includes(String(match.status || "").toUpperCase());
   const canRemoveOneRun = hasCurrentMatch && toNumber(match.score?.runs) > 0 && toNumber(match.batters[0]?.runs) > 0 && toNumber(match.bowler?.runs) > 0;
+  const canUndoLastBall = hasCurrentMatch && asArray(match.ballHistory, []).length > 0;
 
   return (
     <main className="admin-shell">
@@ -1049,6 +1105,10 @@ export function AdminPage() {
           </div>
 
           <div className="score-actions">
+            <button type="button" onClick={undoLastBall} disabled={isAutoSaving || !canUndoLastBall}>
+              <Undo2 size={16} />
+              Undo Last Ball
+            </button>
             <button type="button" onClick={() => adjustRun(1)} disabled={isAutoSaving}>
               <Plus size={16} />
               Add 1 Run
@@ -1310,6 +1370,10 @@ export function AdminPage() {
           {hasCurrentMatch ? <button className="danger-button" type="button" onClick={() => adjustRun(-1)} disabled={isAutoSaving || !canRemoveOneRun}>
             <Minus size={16} />
             Remove 1 Run
+          </button> : null}
+          {hasCurrentMatch ? <button className="secondary-button" type="button" onClick={undoLastBall} disabled={isAutoSaving || !canUndoLastBall}>
+            <Undo2 size={16} />
+            Undo Last Ball
           </button> : null}
         </div>
       </form>
