@@ -996,7 +996,7 @@ export function AdminPage() {
 
       <form className="admin-grid" onSubmit={saveScoreboard}>
         <section className="admin-card tournament-admin-card">
-          <h2>Tournament</h2>
+          <h2>Tournament Settings</h2>
           <div className="form-grid">
             <Field label="Tournament name" value={scoreboard.tournament.name} onChange={(value) => updateTournament("name", value)} />
             <Field label="Season" value={scoreboard.tournament.season} onChange={(value) => updateTournament("season", value)} />
@@ -1004,9 +1004,9 @@ export function AdminPage() {
           </div>
         </section>
 
-        {hasCurrentMatch ? <section className="admin-card">
+        {hasCurrentMatch ? <section className="admin-card current-match-admin-card">
           <div className="card-heading-row">
-            <h2>Current Match</h2>
+            <h2>Live Match Controls</h2>
             <button type="button" className="danger-button" onClick={removeCurrentMatch} disabled={isAutoSaving}>Remove Match</button>
           </div>
           <div className="form-grid">
@@ -1113,8 +1113,8 @@ export function AdminPage() {
           </div>
         </section> : null}
 
-        {hasCurrentMatch ? <section className="admin-card">
-          <h2>Teams</h2>
+        {hasCurrentMatch ? <section className="admin-card teams-admin-card">
+          <h2>Team Details</h2>
           <div className="team-edit-grid">
             {Object.entries(teams).map(([teamId, team]) => (
               <div className="mini-panel" key={teamId}>
@@ -1137,8 +1137,8 @@ export function AdminPage() {
           </div>
         </section> : null}
 
-        {hasCurrentMatch ? <section className="admin-card">
-          <h2>Players</h2>
+        {hasCurrentMatch ? <section className="admin-card players-admin-card">
+          <h2>Player Details</h2>
           <div className="form-grid player-select-grid">
             <SelectField
               label="Striker"

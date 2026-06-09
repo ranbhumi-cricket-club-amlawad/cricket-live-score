@@ -1002,15 +1002,29 @@ code {
 }
 
 .admin-upcoming-card {
-  order: -2;
+  order: 10;
 }
 
 .admin-completed-card {
-  order: -1;
+  order: 20;
 }
 
 .tournament-admin-card {
-  order: 0;
+  grid-column: 1 / -1;
+  order: 30;
+}
+
+.current-match-admin-card {
+  order: 1;
+}
+
+.players-admin-card {
+  order: 2;
+}
+
+.teams-admin-card {
+  grid-column: 1 / -1;
+  order: 3;
 }
 
 .admin-card {
