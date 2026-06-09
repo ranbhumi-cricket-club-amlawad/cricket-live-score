@@ -993,7 +993,7 @@ export function AdminPage() {
 
           <div className="status-controls">
             <span>Match status</span>
-            {["LIVE", "INNINGS BREAK", "COMPLETED", "CANCELLED"].map((nextStatus) => (
+            {["PRE LIVE", "LIVE", "INNINGS BREAK", "COMPLETED", "CANCELLED"].map((nextStatus) => (
               <button
                 type="button"
                 key={nextStatus}

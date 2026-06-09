@@ -672,6 +672,16 @@ button:disabled {
   color: #0f766e;
 }
 
+.match-card-top .pre-live-status {
+  border: 1px solid #bae6fd;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #0369a1;
+  background: #f0f9ff;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
 .fixture-teams {
   margin: 16px 0;
   min-height: 54px;

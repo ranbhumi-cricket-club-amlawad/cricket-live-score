@@ -282,7 +282,7 @@ function UpcomingMatches({ matches }) {
             <button type="button" className="match-card-button" onClick={() => setSelectedMatchId(selectedMatchId === (match.id || `${match.matchNo}-${index}`) ? "" : (match.id || `${match.matchNo}-${index}`))} aria-expanded={selectedMatchId === (match.id || `${match.matchNo}-${index}`)}>
               <div className="match-card-top">
                 <span>{match.matchNo}</span>
-                <strong>{match.teamA.shortName} vs {match.teamB.shortName}</strong>
+                <strong className={String(match.status || "").toUpperCase() === "PRE LIVE" ? "pre-live-status" : ""}>{String(match.status || "").toUpperCase() === "PRE LIVE" ? "Pre live" : `${match.teamA.shortName} vs ${match.teamB.shortName}`}</strong>
               </div>
               <div className="fixture-teams">
                 <span>{match.teamA.name}</span>
@@ -536,6 +536,11 @@ function App() {
   const tournament = scoreboard.tournament || sampleScoreboard.tournament;
   const matchStatus = String(match.status || "").toUpperCase();
   const hasLiveMatch = ["LIVE", "INNINGS BREAK"].includes(matchStatus);
+  const upcomingMatches = asArray(scoreboard.upcomingMatches);
+  const preLiveTeamIds = Object.keys(match.teams || {});
+  const preLiveTeamA = match.teams?.teamA || match.teams?.[preLiveTeamIds[0]] || {};
+  const preLiveTeamB = match.teams?.teamB || match.teams?.[preLiveTeamIds[1]] || {};
+  const visibleUpcomingMatches = matchStatus === "PRE LIVE" && match.id && !upcomingMatches.some((item) => item.id && item.id === match.id) ? [{ id: match.id, status: "PRE LIVE", matchNo: match.matchNo, date: match.date, time: match.time, venue: match.venue || tournament.venue, teamA: preLiveTeamA, teamB: preLiveTeamB }, ...upcomingMatches] : upcomingMatches;
   const completedMatches = asArray(scoreboard.completedMatches);
   const visibleCompletedMatches = ["COMPLETED", "CANCELLED"].includes(matchStatus) && !completedMatches.some((item) => item.id && item.id === match.id) ? [match, ...completedMatches] : completedMatches;
   if (isAdminRoute) {
@@ -571,7 +576,7 @@ function App() {
       ) : null}
 
       {hasLiveMatch ? <LiveMatch match={{ ...match, venue: match.venue || tournament.venue }} /> : null}
-      <UpcomingMatches matches={scoreboard.upcomingMatches || []} />
+      <UpcomingMatches matches={visibleUpcomingMatches} />
       <CompletedMatches matches={visibleCompletedMatches} />
     </main>
   );
