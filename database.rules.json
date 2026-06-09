@@ -4,6 +4,20 @@
       ".read": true,
       ".write": true
     },
+    "adminSession": {
+      ".read": true,
+      ".write": true,
+      ".validate": "newData.val() === null || newData.hasChildren(['sessionId', 'lastSeen'])",
+      "sessionId": {
+        ".validate": "newData.isString() && newData.val().length > 0"
+      },
+      "lastSeen": {
+        ".validate": "newData.isNumber()"
+      },
+      "$other": {
+        ".validate": false
+      }
+    },
     "liveUsers": {
       ".read": true,
       "$browserId": {

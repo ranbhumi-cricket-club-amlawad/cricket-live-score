@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, CalendarPlus, ChevronDown, LogOut, Minus, Plus, Save, ShieldCheck, Trophy, Undo2, Zap } from "lucide-react";
 import { formatMatchSchedule } from "./dateFormat";
+import { adminSessionCheckIntervalMs, adminSessionHeartbeatIntervalMs, claimAdminSession, createAdminSessionId, fetchAdminSession, heartbeatAdminSession, releaseAdminSession } from "./firebaseAdminSession";
 import { fetchScoreboard, hasFirebaseConfig, updateScoreboard } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
 
 const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "Score@2026";
+const ADMIN_PASSWORD = "Ranbhumi@2026#Admin";
+const ADMIN_SESSION_STORAGE_KEY = "cricket-admin-session";
 const DEFAULT_EXTRAS = {
   wides: 0,
   noBalls: 0,
@@ -365,12 +367,23 @@ function AdminLogin({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      window.sessionStorage.setItem("cricket-admin", "true");
-      onLogin();
+      setIsLoggingIn(true);
+      setError("");
+      try {
+        const sessionId = createAdminSessionId();
+        await claimAdminSession(sessionId);
+        window.sessionStorage.setItem(ADMIN_SESSION_STORAGE_KEY, sessionId);
+        onLogin(sessionId);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoggingIn(false);
+      }
       return;
     }
     setError("Invalid username or password.");
@@ -392,9 +405,9 @@ function AdminLogin({ onLogin }) {
         <Field label="Username" value={username} onChange={setUsername} />
         <Field label="Password" type="password" value={password} onChange={setPassword} />
 
-        <button className="primary-button" type="submit">
+        <button className="primary-button" type="submit" disabled={isLoggingIn}>
           <ShieldCheck size={17} />
-          Login
+          {isLoggingIn ? "Logging in..." : "Login"}
         </button>
       </form>
     </main>
@@ -402,7 +415,8 @@ function AdminLogin({ onLogin }) {
 }
 
 export function AdminPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => window.sessionStorage.getItem("cricket-admin") === "true");
+  const [adminSessionId, setAdminSessionId] = useState(() => window.sessionStorage.getItem(ADMIN_SESSION_STORAGE_KEY) || "");
+  const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(window.sessionStorage.getItem(ADMIN_SESSION_STORAGE_KEY)));
   const [scoreboard, setScoreboard] = useState(() => cloneScoreboard(sampleScoreboard));
   const [selectedUpcomingId, setSelectedUpcomingId] = useState("");
   const [pendingLiveMatchId, setPendingLiveMatchId] = useState("");
@@ -440,8 +454,48 @@ export function AdminPage() {
     };
   }, [isLoggedIn]);
 
+  useEffect(() => {
+    if (!isLoggedIn || !adminSessionId) return undefined;
+    let mounted = true;
+
+    async function verifySession() {
+      try {
+        const session = await fetchAdminSession();
+        if (mounted && session?.sessionId !== adminSessionId) {
+          window.sessionStorage.removeItem(ADMIN_SESSION_STORAGE_KEY);
+          setAdminSessionId("");
+          setIsLoggedIn(false);
+        }
+      } catch (err) {
+        if (mounted) setError(err.message);
+      }
+    }
+
+    async function heartbeatSession() {
+      try {
+        const active = await heartbeatAdminSession(adminSessionId);
+        if (mounted && !active) {
+          window.sessionStorage.removeItem(ADMIN_SESSION_STORAGE_KEY);
+          setAdminSessionId("");
+          setIsLoggedIn(false);
+        }
+      } catch (err) {
+        if (mounted) setError(err.message);
+      }
+    }
+
+    verifySession();
+    const checkIntervalId = window.setInterval(verifySession, adminSessionCheckIntervalMs);
+    const heartbeatIntervalId = window.setInterval(heartbeatSession, adminSessionHeartbeatIntervalMs);
+    return () => {
+      mounted = false;
+      window.clearInterval(checkIntervalId);
+      window.clearInterval(heartbeatIntervalId);
+    };
+  }, [adminSessionId, isLoggedIn]);
+
   if (!isLoggedIn) {
-    return <AdminLogin onLogin={() => setIsLoggedIn(true)} />;
+    return <AdminLogin onLogin={(sessionId) => { setAdminSessionId(sessionId); setIsLoggedIn(true); }} />;
   }
 
   function updateDraft(updater) {
@@ -1014,7 +1068,9 @@ export function AdminPage() {
   }
 
   function logout() {
-    window.sessionStorage.removeItem("cricket-admin");
+    releaseAdminSession(adminSessionId).catch(() => {});
+    window.sessionStorage.removeItem(ADMIN_SESSION_STORAGE_KEY);
+    setAdminSessionId("");
     setIsLoggedIn(false);
   }
 

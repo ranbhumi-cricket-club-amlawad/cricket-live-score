@@ -40,7 +40,7 @@ firebase use YOUR_PROJECT_ID
 firebase deploy --only database
 ```
 
-The included rules allow the demo admin to update `/scoreboard` and allow anonymous public presence heartbeats under `/liveUsers`. Deploy the database rules whenever the presence configuration changes.
+The included rules allow the demo admin to update `/scoreboard`, coordinate the active browser under `/adminSession`, and allow anonymous public presence heartbeats under `/liveUsers`. Deploy the database rules whenever the admin-session or presence configuration changes.
 
 ## 3. Add Demo Data
 
@@ -72,7 +72,7 @@ Hard-coded login:
 
 ```text
 Username: admin
-Password: Score@2026
+Password: Ranbhumi@2026#Admin
 ```
 
 The admin page can update:
@@ -96,7 +96,7 @@ The admin page can update:
 - `Undo Last Ball` restores the score, over, batters, bowler, extras, wickets, strike, and calculated rates from before the most recent recorded ball
 - Wicket and run-out actions require selecting the dismissed player; dismissed players are marked out and removed from striker selection
 
-Important: this hard-coded login is only a simple frontend gate. It is not real security because browser code can be inspected. The included `database.rules.json` allows public writes to `/scoreboard` so this demo admin panel can save directly from GitHub Pages. For a production tournament, use Firebase Authentication or a backend API before sharing the admin URL publicly.
+Only the most recently logged-in admin session remains active. A new admin login replaces the Firebase `/adminSession` token, and previously logged-in admin pages automatically return to the login screen. Important: this hard-coded login is only a simple frontend gate. It is not real security because browser code and the public session record can be inspected. The included `database.rules.json` allows public writes to `/scoreboard` and `/adminSession` so this demo admin panel can operate directly from GitHub Pages. For a production tournament, use Firebase Authentication or a backend API before sharing the admin URL publicly.
 
 The public scorecard is shown while `currentMatch.status` is `LIVE` or `INNINGS BREAK`. Live team roster changes appear in the Playing Squads section after the regular Firebase refresh; the batting scorecard continues to show only current and previously played batters. Set a prepared current match to `PRE LIVE` to hide its live scorecard and show it again in the Upcoming Matches section without losing admin setup or score data. During an innings break it keeps the full scorecard visible with a clear break banner. Upcoming and completed/cancelled matches have separate sections. Select an upcoming match card to view both team squads, or open a completed match to view player run details and bowler over details.
 
@@ -108,6 +108,7 @@ Firebase path:
 
 ```text
 /scoreboard
+/adminSession
 /liveUsers/{anonymousBrowserId}
 ```
 
@@ -129,6 +130,7 @@ Main fields:
 - `completedMatches`: completed and cancelled match history.
 - `completedMatches[].winnerTeamId`: optional winning team identifier displayed on completed match cards.
 - `liveUsers`: anonymous presence records containing only a Firebase server-generated `lastSeen` timestamp.
+- `adminSession`: active admin browser session ID and Firebase server-generated `lastSeen` timestamp.
 
 ## 6. GitHub Setup
 
@@ -151,6 +153,7 @@ In GitHub:
 ```text
 VITE_FIREBASE_DATABASE_URL=https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com
 VITE_LIVE_USERS_PATH=liveUsers
+VITE_ADMIN_SESSION_PATH=adminSession
 ```
 
 3. Repository Settings > Pages > Source: GitHub Actions.
