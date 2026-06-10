@@ -1146,6 +1146,7 @@ export function AdminPage() {
   const bowlingPlayers = Array.from(new Set([...normalizePlayerList(bowlingTeam?.players, []), match.bowler.name, ...asArray(match.bowlingScorecard, []).map((player) => player.name)].filter(Boolean)));
   const wicketCandidates = match.batters.filter((player) => player?.name && !player.dismissed);
   const hasCurrentMatch = !["", "NONE", "UPCOMING"].includes(String(match.status || "").toUpperCase());
+  const [currentOverNumber = "0", currentBallNumber = "0"] = String(match.score?.overs || "0.0").split(".");
   const canRemoveOneRun = hasCurrentMatch && toNumber(match.score?.runs) > 0 && toNumber(match.batters[0]?.runs) > 0 && toNumber(match.bowler?.runs) > 0;
   const canUndoLastBall = hasCurrentMatch && asArray(match.ballHistory, []).length > 0;
 
@@ -1167,6 +1168,16 @@ export function AdminPage() {
           </button>
         </div>
       </header>
+
+      {hasCurrentMatch ? <div className="admin-live-summary" aria-label="Current live score summary">
+        <strong>{match.status || "LIVE"} score</strong>
+        <span><b>{toNumber(match.score?.runs)}</b> runs</span>
+        <span><b>{toNumber(match.score?.wickets)}</b> wickets</span>
+        <span>Over <b>{currentOverNumber}</b></span>
+        <span>Ball <b>{currentBallNumber}</b></span>
+        <span>Strike <b>{match.batters?.[0]?.name || "-"}</b></span>
+        <span>Non-strike <b>{match.batters?.[1]?.name || "-"}</b></span>
+      </div> : null}
 
       {status ? <div className="notice">{status}</div> : null}
       {error ? <div className="alert">{error}</div> : null}
