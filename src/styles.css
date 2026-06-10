@@ -981,6 +981,9 @@ code {
 }
 
 .admin-live-summary {
+  position: sticky;
+  top: 8px;
+  z-index: 30;
   min-height: 40px;
   display: flex;
   align-items: center;
@@ -988,7 +991,8 @@ code {
   border: 1px solid #d9e0ea;
   border-radius: 6px;
   padding: 7px 10px;
-  background: #f8fafc;
+  background: rgba(248, 250, 252, 0.98);
+  box-shadow: 0 8px 18px rgba(31, 41, 55, 0.12);
   overflow-x: auto;
   white-space: nowrap;
 }
@@ -1667,6 +1671,18 @@ code {
   .admin-topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .admin-live-summary {
+    flex-wrap: wrap;
+    row-gap: 7px;
+    overflow-x: visible;
+    white-space: normal;
+  }
+
+  .admin-live-summary > strong,
+  .admin-live-summary span {
+    white-space: nowrap;
   }
 
   .sync-state {
