@@ -1436,43 +1436,6 @@ code {
   flex-wrap: wrap;
 }
 
-.upcoming-confirmation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin: 12px 0;
-  border: 1px solid #bae6fd;
-  border-radius: 8px;
-  padding: 12px;
-  background: #f0f9ff;
-}
-
-.upcoming-confirmation > div:first-child {
-  display: grid;
-  gap: 4px;
-}
-
-.upcoming-confirmation > div:last-child {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.upcoming-confirmation span {
-  color: #64748b;
-  font-size: 0.82rem;
-}
-
-.upcoming-confirmation.confirm-danger {
-  border-color: #fecdd3;
-  background: #fff1f2;
-}
-
-.upcoming-confirmation.confirm-danger strong {
-  color: #9f1239;
-}
-
 .completed-admin-list {
   display: grid;
   gap: 10px;
@@ -1492,8 +1455,7 @@ code {
   gap: 3px;
 }
 
-.completed-admin-row small,
-.completed-live-confirmation span {
+.completed-admin-row small {
   color: #64748b;
   font-size: 0.82rem;
 }
@@ -1551,19 +1513,10 @@ code {
   gap: 10px !important;
 }
 
-.completed-admin-actions,
-.completed-live-confirmation > div {
+.completed-admin-actions {
   display: flex !important;
   flex-wrap: wrap;
   gap: 8px !important;
-}
-
-.completed-live-confirmation {
-  gap: 8px !important;
-  border: 1px solid #bbf7d0;
-  border-radius: 8px;
-  padding: 12px;
-  background: #f0fdf4;
 }
 
 .completed-match-details-editor {
@@ -1624,6 +1577,50 @@ code {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 18px 40px rgba(31, 41, 55, 0.16);
+}
+
+.confirmation-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.confirmation-modal {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 18px;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  padding: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+}
+
+.confirmation-modal > div:first-child {
+  display: grid;
+  gap: 7px;
+}
+
+.confirmation-modal strong {
+  color: #172033;
+  font-size: 1.05rem;
+}
+
+.confirmation-modal span {
+  color: #64748b;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.confirmation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 850px) {
@@ -1714,11 +1711,6 @@ code {
   }
 
   .batting-team-picker {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .upcoming-confirmation {
     align-items: stretch;
     flex-direction: column;
   }

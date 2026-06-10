@@ -80,7 +80,7 @@ The admin page can update:
 - Tournament name, season, and venue
 - Upcoming matches appear first; use `Make Live`, then select which team bats first
 - Upcoming matches include an explicit `Edit` button for changing match and squad details
-- Upcoming match `Make Live`, `Cancel`, and `Remove` actions require confirmation before continuing
+- Match status changes, make-live actions, second-innings start, cancellations, and every remove action require confirmation in a popup before continuing
 - Use `Start Second Innings` after the first innings to preserve its score, swap batting/fielding teams, set the target, and initialize the other team's players
 - Completed and cancelled matches are retained until an admin removes them
 - Completed matches can also be added manually with match details, team names, scores, and winner

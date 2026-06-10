@@ -420,12 +420,11 @@ export function AdminPage() {
   const [scoreboard, setScoreboard] = useState(() => cloneScoreboard(sampleScoreboard));
   const [selectedUpcomingId, setSelectedUpcomingId] = useState("");
   const [pendingLiveMatchId, setPendingLiveMatchId] = useState("");
-  const [pendingUpcomingAction, setPendingUpcomingAction] = useState(null);
   const [pendingWicketLabel, setPendingWicketLabel] = useState("");
   const [showUpcomingMatches, setShowUpcomingMatches] = useState(false);
   const [showCompletedMatches, setShowCompletedMatches] = useState(false);
   const [selectedCompletedId, setSelectedCompletedId] = useState("");
-  const [pendingCompletedLiveId, setPendingCompletedLiveId] = useState("");
+  const [confirmationDialog, setConfirmationDialog] = useState(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -734,7 +733,6 @@ export function AdminPage() {
 
   function makeUpcomingMatchLive(index, battingTeamId) {
     setPendingLiveMatchId("");
-    setPendingUpcomingAction(null);
     return updateDraftAndSave((draft) => {
       const upcoming = draft.upcomingMatches[index];
       if (!upcoming) return;
@@ -816,7 +814,6 @@ export function AdminPage() {
     }
     const completed = scoreboard.completedMatches[index];
     const restoreAtInningsBreak = toNumber(completed?.inningsNumber) === 1;
-    setPendingCompletedLiveId("");
     await updateDraftAndSave((draft) => {
       const restored = draft.completedMatches[index];
       if (!restored) return;
@@ -1196,7 +1193,7 @@ export function AdminPage() {
         {hasCurrentMatch ? <section className="admin-card current-match-admin-card">
           <div className="card-heading-row">
             <h2>Live Match Controls</h2>
-            <button type="button" className="danger-button" onClick={removeCurrentMatch} disabled={isAutoSaving}>Remove Match</button>
+            <button type="button" className="danger-button" onClick={() => setConfirmationDialog({ title: "Remove current match?", message: "This removes the current match and its live score from the scoreboard.", confirmLabel: "Remove Match", danger: true, onConfirm: removeCurrentMatch })} disabled={isAutoSaving}>Remove Match</button>
           </div>
           <div className="form-grid">
             <Field label="Status" value={match.status} onChange={(value) => updateMatch("status", value)} />
@@ -1224,14 +1221,14 @@ export function AdminPage() {
               <button
                 type="button"
                 key={nextStatus}
-                onClick={() => updateMatchStatus(nextStatus)}
+                onClick={() => setConfirmationDialog({ title: `Change status to ${nextStatus}?`, message: nextStatus === "COMPLETED" || nextStatus === "CANCELLED" ? "This match will move out of the live scoreboard and into the completed/cancelled section." : `The public scoreboard will change this match status to ${nextStatus}.`, confirmLabel: `Set ${nextStatus}`, danger: nextStatus === "COMPLETED" || nextStatus === "CANCELLED", onConfirm: () => updateMatchStatus(nextStatus) })}
                 className={match.status === nextStatus ? "active-status" : ""}
-                disabled={isAutoSaving}
+                disabled={isAutoSaving || match.status === nextStatus}
               >
                 {nextStatus}
               </button>
             ))}
-            <button type="button" className="second-innings-button" onClick={startSecondInnings} disabled={isAutoSaving || toNumber(match.inningsNumber) >= 2}>
+            <button type="button" className="second-innings-button" onClick={() => setConfirmationDialog({ title: "Start second innings?", message: "This saves the first innings, swaps batting and bowling teams, and starts the remaining team's innings.", confirmLabel: "Start Second Innings", onConfirm: startSecondInnings })} disabled={isAutoSaving || toNumber(match.inningsNumber) >= 2}>
               <ArrowLeftRight size={16} />
               {toNumber(match.inningsNumber) >= 2 ? "Second Innings Active" : "Start Second Innings"}
             </button>
@@ -1246,7 +1243,7 @@ export function AdminPage() {
               <Plus size={16} />
               Add 1 Run
             </button>
-            <button type="button" onClick={() => adjustRun(-1)} disabled={isAutoSaving || !canRemoveOneRun}>
+            <button type="button" onClick={() => setConfirmationDialog({ title: "Remove 1 run?", message: "This removes one run from the match, striker scorecard, and bowler figures.", confirmLabel: "Remove 1 Run", danger: true, onConfirm: () => adjustRun(-1) })} disabled={isAutoSaving || !canRemoveOneRun}>
               <Minus size={16} />
               Remove 1 Run
             </button>
@@ -1254,7 +1251,7 @@ export function AdminPage() {
               <Plus size={16} />
               Add Wicket
             </button>
-            <button type="button" className="danger-ball" onClick={removeWicket} disabled={isAutoSaving}>
+            <button type="button" className="danger-ball" onClick={() => setConfirmationDialog({ title: "Remove wicket?", message: "This removes the latest wicket and recalculates the scorecard.", confirmLabel: "Remove Wicket", danger: true, onConfirm: removeWicket })} disabled={isAutoSaving}>
               <Minus size={16} />
               Remove Wicket
             </button>
@@ -1416,27 +1413,11 @@ export function AdminPage() {
                       <Pencil size={15} />
                       Edit
                     </button>
-                    <button type="button" className="primary-button" onClick={() => { setPendingLiveMatchId(""); setPendingUpcomingAction({ matchId: upcoming.id, action: "live", index }); }} disabled={isAutoSaving}>Make Live</button>
-                    <button type="button" className="secondary-button" onClick={() => { setPendingLiveMatchId(""); setPendingUpcomingAction({ matchId: upcoming.id, action: "cancel", index }); }} disabled={isAutoSaving}>Cancel</button>
-                    <button type="button" className="danger-button" onClick={() => { setPendingLiveMatchId(""); setPendingUpcomingAction({ matchId: upcoming.id, action: "remove", index }); }} disabled={isAutoSaving}>Remove</button>
+                    <button type="button" className="primary-button" onClick={() => setConfirmationDialog({ title: "Make this match live?", message: `${upcoming.matchNo || `Match ${index + 1}`} will become the current match. After confirmation, choose which team will bat first.`, confirmLabel: "Continue", onConfirm: () => setPendingLiveMatchId(upcoming.id) })} disabled={isAutoSaving}>Make Live</button>
+                    <button type="button" className="secondary-button" onClick={() => setConfirmationDialog({ title: "Cancel this match?", message: `${upcoming.matchNo || `Match ${index + 1}`} will move to the cancelled section.`, confirmLabel: "Cancel Match", danger: true, onConfirm: () => cancelUpcomingMatch(index) })} disabled={isAutoSaving}>Cancel</button>
+                    <button type="button" className="danger-button" onClick={() => setConfirmationDialog({ title: "Remove upcoming match?", message: `${upcoming.matchNo || `Match ${index + 1}`} will be permanently removed from the upcoming list.`, confirmLabel: "Remove Match", danger: true, onConfirm: () => removeUpcomingMatch(index) })} disabled={isAutoSaving}>Remove</button>
                   </div>
                 </div>
-                {pendingUpcomingAction?.matchId === upcoming.id ? <div className={`upcoming-confirmation ${pendingUpcomingAction.action === "live" ? "confirm-live" : "confirm-danger"}`}>
-                  <div>
-                    <strong>Are you sure you want to {pendingUpcomingAction.action === "live" ? "make this match live" : `${pendingUpcomingAction.action} this match`}?</strong>
-                    <span>{upcoming.matchNo || `Match ${index + 1}`} · {upcoming.teamA?.name || "Team A"} vs {upcoming.teamB?.name || "Team B"}</span>
-                  </div>
-                  <div>
-                    <button type="button" className={pendingUpcomingAction.action === "remove" ? "danger-button" : "primary-button"} onClick={() => {
-                      const action = pendingUpcomingAction.action;
-                      setPendingUpcomingAction(null);
-                      if (action === "live") setPendingLiveMatchId(upcoming.id);
-                      if (action === "cancel") cancelUpcomingMatch(index);
-                      if (action === "remove") removeUpcomingMatch(index);
-                    }} disabled={isAutoSaving}>Yes, confirm</button>
-                    <button type="button" className="secondary-button" onClick={() => setPendingUpcomingAction(null)} disabled={isAutoSaving}>No, keep match</button>
-                  </div>
-                </div> : null}
                 {pendingLiveMatchId === upcoming.id ? <div className="batting-team-picker">
                   <div>
                     <strong>Which team will bat first?</strong>
@@ -1493,7 +1474,7 @@ export function AdminPage() {
               const restoreAtInningsBreak = toNumber(completed.inningsNumber) === 1;
               return (
               <div className={isSelected ? "completed-admin-row completed-admin-score-row selected-completed-admin" : "completed-admin-row completed-admin-score-row"} key={completedId}>
-                <button type="button" className="completed-admin-summary completed-admin-select" onClick={() => { setSelectedCompletedId(isSelected ? "" : completedId); setPendingCompletedLiveId(""); }} aria-expanded={isSelected}>
+                <button type="button" className="completed-admin-summary completed-admin-select" onClick={() => setSelectedCompletedId(isSelected ? "" : completedId)} aria-expanded={isSelected}>
                   <span>
                     <strong>{completed.matchNo || `Match ${index + 1}`}</strong>
                     <small>{completed.status} · {completed.teams ? `${completed.teams[completed.battingTeamId]?.name || "Team A"} vs ${completed.teams[completed.bowlingTeamId]?.name || "Team B"}` : `${completed.teamA?.name || "Team A"} vs ${completed.teamB?.name || "Team B"}`}</small>
@@ -1525,17 +1506,9 @@ export function AdminPage() {
                     </select>
                   </label>
                 </div> : null}
-                {isSelected && pendingCompletedLiveId === completedId ? <div className="completed-live-confirmation">
-                  <strong>{restoreAtInningsBreak ? "Restore this match at innings break?" : "Make this completed match live again?"}</strong>
-                  <span>{restoreAtInningsBreak ? "The saved first innings will remain visible. Use Start Second Innings when the remaining team is ready to bat." : "The saved score and player details will become the current live match."}</span>
-                  <div>
-                    <button type="button" className="primary-button" onClick={() => makeCompletedMatchLiveAgain(index)} disabled={isAutoSaving}>Confirm Make Live</button>
-                    <button type="button" className="secondary-button" onClick={() => setPendingCompletedLiveId("")} disabled={isAutoSaving}>Close</button>
-                  </div>
-                </div> : null}
                 {isSelected ? <div className="completed-admin-actions">
-                  {!isCancelled && pendingCompletedLiveId !== completedId ? <button type="button" className="primary-button" onClick={() => setPendingCompletedLiveId(completedId)} disabled={isAutoSaving || hasCurrentMatch} title={hasCurrentMatch ? "Remove or finish the current match first" : ""}>Make Live Again</button> : null}
-                  <button type="button" className="danger-button" onClick={() => removeCompletedMatch(index)} disabled={isAutoSaving}>Remove</button>
+                  {!isCancelled ? <button type="button" className="primary-button" onClick={() => setConfirmationDialog({ title: "Make this match live again?", message: restoreAtInningsBreak ? "The match will return at innings break so the remaining team can start the second innings." : "The saved score and player details will become the current live match.", confirmLabel: "Make Live Again", onConfirm: () => makeCompletedMatchLiveAgain(index) })} disabled={isAutoSaving || hasCurrentMatch} title={hasCurrentMatch ? "Remove or finish the current match first" : ""}>Make Live Again</button> : null}
+                  <button type="button" className="danger-button" onClick={() => setConfirmationDialog({ title: "Remove completed match?", message: `${completed.matchNo || `Match ${index + 1}`} will be permanently removed from match history.`, confirmLabel: "Remove Match", danger: true, onConfirm: () => removeCompletedMatch(index) })} disabled={isAutoSaving}>Remove</button>
                 </div> : null}
               </div>
               );
@@ -1552,7 +1525,7 @@ export function AdminPage() {
             <Zap size={16} />
             Add 1 Run
           </button> : null}
-          {hasCurrentMatch ? <button className="danger-button" type="button" onClick={() => adjustRun(-1)} disabled={isAutoSaving || !canRemoveOneRun}>
+          {hasCurrentMatch ? <button className="danger-button" type="button" onClick={() => setConfirmationDialog({ title: "Remove 1 run?", message: "This removes one run from the match, striker scorecard, and bowler figures.", confirmLabel: "Remove 1 Run", danger: true, onConfirm: () => adjustRun(-1) })} disabled={isAutoSaving || !canRemoveOneRun}>
             <Minus size={16} />
             Remove 1 Run
           </button> : null}
@@ -1562,6 +1535,18 @@ export function AdminPage() {
           </button> : null}
         </div>
       </form>
+      {confirmationDialog ? <div className="confirmation-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !isAutoSaving) setConfirmationDialog(null); }}>
+        <div className="confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="confirmation-title">
+          <div>
+            <strong id="confirmation-title">{confirmationDialog.title}</strong>
+            <span>{confirmationDialog.message}</span>
+          </div>
+          <div className="confirmation-actions">
+            <button type="button" className={confirmationDialog.danger ? "danger-button" : "primary-button"} onClick={() => { const action = confirmationDialog.onConfirm; setConfirmationDialog(null); action(); }} disabled={isAutoSaving}>{confirmationDialog.confirmLabel || "Confirm"}</button>
+            <button type="button" className="secondary-button" onClick={() => setConfirmationDialog(null)} disabled={isAutoSaving}>Go Back</button>
+          </div>
+        </div>
+      </div> : null}
     </main>
   );
 }
