@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, CalendarPlus, ChevronDown, LogOut, Minus, Pencil, Plus, Save, ShieldCheck, Trophy, Undo2, Zap } from "lucide-react";
 import { formatMatchSchedule } from "./dateFormat";
 import { adminSessionCheckIntervalMs, adminSessionHeartbeatIntervalMs, claimAdminSession, createAdminSessionId, fetchAdminSession, heartbeatAdminSession, releaseAdminSession } from "./firebaseAdminSession";
-import { fetchScoreboard, hasFirebaseConfig, updateScoreboard } from "./firebaseScoreboard";
+import { adminRefreshIntervalMs, fetchScoreboard, hasFirebaseConfig, updateScoreboard } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
 
 const ADMIN_USERNAME = "admin";
@@ -435,6 +435,9 @@ export function AdminPage() {
 
     async function load() {
       try {
+        if (isAutoSaving) return;
+        const focusedTag = document.activeElement?.tagName || "";
+        if (["INPUT", "TEXTAREA", "SELECT"].includes(focusedTag)) return;
         const data = await fetchScoreboard();
         if (mounted && data) {
           setScoreboard(cloneScoreboard(data));
@@ -450,10 +453,13 @@ export function AdminPage() {
       load();
     }
 
+    const intervalId = isLoggedIn ? window.setInterval(load, adminRefreshIntervalMs) : null;
+
     return () => {
       mounted = false;
+      if (intervalId) window.clearInterval(intervalId);
     };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, isAutoSaving]);
 
   useEffect(() => {
     if (!isLoggedIn || !adminSessionId) return undefined;
@@ -793,12 +799,6 @@ export function AdminPage() {
     match.recentBalls = [];
     match.ballHistory = [];
     match.lastUpdated = new Date().toISOString();
-  }
-
-  function removeCurrentMatch() {
-    return updateDraftAndSave((draft) => {
-      clearCurrentMatch(draft.currentMatch);
-    }, "Current match removed.");
   }
 
   function removeCompletedMatch(index) {
@@ -1193,7 +1193,6 @@ export function AdminPage() {
         {hasCurrentMatch ? <section className="admin-card current-match-admin-card">
           <div className="card-heading-row">
             <h2>Live Match Controls</h2>
-            <button type="button" className="danger-button" onClick={() => setConfirmationDialog({ title: "Remove current match?", message: "This removes the current match and its live score from the scoreboard.", confirmLabel: "Remove Match", danger: true, onConfirm: removeCurrentMatch })} disabled={isAutoSaving}>Remove Match</button>
           </div>
           <div className="form-grid">
             <Field label="Status" value={match.status} onChange={(value) => updateMatch("status", value)} />
@@ -1217,11 +1216,11 @@ export function AdminPage() {
 
           <div className="status-controls">
             <span>Match status</span>
-            {["PRE LIVE", "LIVE", "INNINGS BREAK", "COMPLETED", "CANCELLED"].map((nextStatus) => (
+            {["PRE LIVE", "LIVE", "INNINGS BREAK", "COMPLETED"].map((nextStatus) => (
               <button
                 type="button"
                 key={nextStatus}
-                onClick={() => setConfirmationDialog({ title: `Change status to ${nextStatus}?`, message: nextStatus === "COMPLETED" || nextStatus === "CANCELLED" ? "This match will move out of the live scoreboard and into the completed/cancelled section." : `The public scoreboard will change this match status to ${nextStatus}.`, confirmLabel: `Set ${nextStatus}`, danger: nextStatus === "COMPLETED" || nextStatus === "CANCELLED", onConfirm: () => updateMatchStatus(nextStatus) })}
+                onClick={() => setConfirmationDialog({ title: `Change status to ${nextStatus}?`, message: nextStatus === "COMPLETED" ? "This match will move out of the live scoreboard and into the completed section." : `The public scoreboard will change this match status to ${nextStatus}.`, confirmLabel: `Set ${nextStatus}`, danger: nextStatus === "COMPLETED", onConfirm: () => updateMatchStatus(nextStatus) })}
                 className={match.status === nextStatus ? "active-status" : ""}
                 disabled={isAutoSaving || match.status === nextStatus}
               >
@@ -1507,7 +1506,7 @@ export function AdminPage() {
                   </label>
                 </div> : null}
                 {isSelected ? <div className="completed-admin-actions">
-                  {!isCancelled ? <button type="button" className="primary-button" onClick={() => setConfirmationDialog({ title: "Make this match live again?", message: restoreAtInningsBreak ? "The match will return at innings break so the remaining team can start the second innings." : "The saved score and player details will become the current live match.", confirmLabel: "Make Live Again", onConfirm: () => makeCompletedMatchLiveAgain(index) })} disabled={isAutoSaving || hasCurrentMatch} title={hasCurrentMatch ? "Remove or finish the current match first" : ""}>Make Live Again</button> : null}
+                  {!isCancelled ? <button type="button" className="primary-button" onClick={() => setConfirmationDialog({ title: "Make this match live again?", message: restoreAtInningsBreak ? "The match will return at innings break so the remaining team can start the second innings." : "The saved score and player details will become the current live match.", confirmLabel: "Make Live Again", onConfirm: () => makeCompletedMatchLiveAgain(index) })} disabled={isAutoSaving || hasCurrentMatch} title={hasCurrentMatch ? "Complete the current match first" : ""}>Make Live Again</button> : null}
                   <button type="button" className="danger-button" onClick={() => setConfirmationDialog({ title: "Remove completed match?", message: `${completed.matchNo || `Match ${index + 1}`} will be permanently removed from match history.`, confirmLabel: "Remove Match", danger: true, onConfirm: () => removeCompletedMatch(index) })} disabled={isAutoSaving}>Remove</button>
                 </div> : null}
               </div>

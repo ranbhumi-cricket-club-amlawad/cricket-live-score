@@ -1,7 +1,8 @@
 const databaseUrl = import.meta.env.VITE_FIREBASE_DATABASE_URL;
 const scoreboardPath = import.meta.env.VITE_SCOREBOARD_PATH || "scoreboard";
 
-export const refreshIntervalMs = Number(import.meta.env.VITE_REFRESH_INTERVAL_MS || 8000);
+export const refreshIntervalMs = Number(import.meta.env.VITE_REFRESH_INTERVAL_MS || 10000);
+export const adminRefreshIntervalMs = Number(import.meta.env.VITE_ADMIN_REFRESH_INTERVAL_MS || 3000);
 
 export function hasFirebaseConfig() {
   return Boolean(databaseUrl && !databaseUrl.includes("YOUR_PROJECT_ID"));

@@ -1,6 +1,6 @@
 # Cricket Live Score
 
-A GitHub Pages-ready cricket tournament scoreboard. It shows the current live score, player details, team details, and upcoming matches. The public page fetches the current live match from Firebase Realtime Database every 8 seconds, while upcoming and completed sections load only when requested.
+A GitHub Pages-ready cricket tournament scoreboard. It shows the current live score, player details, team details, and upcoming matches. The public page fetches the current live match from Firebase Realtime Database every 10 seconds, while upcoming and completed sections load only when requested. The admin page refreshes from Firebase every 3 seconds.
 
 ## 1. Install
 
@@ -14,7 +14,8 @@ Edit `.env`:
 ```bash
 VITE_FIREBASE_DATABASE_URL=https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com
 VITE_SCOREBOARD_PATH=scoreboard
-VITE_REFRESH_INTERVAL_MS=8000
+VITE_REFRESH_INTERVAL_MS=10000
+VITE_ADMIN_REFRESH_INTERVAL_MS=3000
 FIREBASE_SERVICE_ACCOUNT=./service-account.json
 ```
 
@@ -104,7 +105,7 @@ Only the most recently logged-in admin session remains active. A new admin login
 
 The public scorecard is shown while `currentMatch.status` is `LIVE` or `INNINGS BREAK`. Live team roster changes appear in the Playing Squads section after the regular Firebase refresh; the batting scorecard continues to show only current and previously played batters. Set a prepared current match to `PRE LIVE` to hide its live scorecard and show it again in the Upcoming Matches section without losing admin setup or score data. During an innings break it keeps the full scorecard visible with a clear break banner. Upcoming and completed/cancelled matches have separate sections. Select an upcoming match card to view both team squads, or open a completed match to view player run details and bowler over details.
 
-To reduce Firebase download usage, the public page polls only `/scoreboard/currentMatch` on the 8-second live refresh timer. Tournament details and small date indexes load once. Clicking an upcoming or completed date fetches only that date from `/scoreboard/publicIndex/upcomingByDate/{date}` or `/scoreboard/publicIndex/completedByDate/{date}`, so completed-match history is no longer downloaded on every live-score refresh. After deploying this change to an existing database, open the admin panel and save once to generate `/scoreboard/publicIndex`.
+To reduce Firebase download usage, the public page polls only `/scoreboard/currentMatch` on the 10-second live refresh timer. Tournament details and small date indexes load once. Clicking an upcoming or completed date fetches only that date from `/scoreboard/publicIndex/upcomingByDate/{date}` or `/scoreboard/publicIndex/completedByDate/{date}`, so completed-match history is no longer downloaded on every live-score refresh. After deploying this change to an existing database, open the admin panel and save once to generate `/scoreboard/publicIndex`.
 
 The public top bar shows an approximate live viewer count. Each browser stores one anonymous ID in `localStorage`, sends a heartbeat every 20 seconds while a public scoreboard tab is visible, and stops being counted after 60 seconds without a heartbeat. Admin pages do not count as viewers.
 
