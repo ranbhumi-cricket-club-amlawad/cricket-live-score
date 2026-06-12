@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, CalendarPlus, ChevronDown, LogOut, Minus, Pencil, Plus, Save, ShieldCheck, Trophy, Undo2, Zap } from "lucide-react";
 import { formatMatchSchedule } from "./dateFormat";
 import { adminSessionCheckIntervalMs, adminSessionHeartbeatIntervalMs, claimAdminSession, createAdminSessionId, fetchAdminSession, heartbeatAdminSession, releaseAdminSession } from "./firebaseAdminSession";
-import { adminRefreshIntervalMs, fetchScoreboard, hasFirebaseConfig, updateScoreboard } from "./firebaseScoreboard";
+import { adminRefreshIntervalMs, fetchCurrentMatch, fetchScoreboard, hasFirebaseConfig, updateScoreboard } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
 
 const ADMIN_USERNAME = "admin";
@@ -433,11 +433,8 @@ export function AdminPage() {
   useEffect(() => {
     let mounted = true;
 
-    async function load() {
+    async function loadInitialScoreboard() {
       try {
-        if (isAutoSaving) return;
-        const focusedTag = document.activeElement?.tagName || "";
-        if (["INPUT", "TEXTAREA", "SELECT"].includes(focusedTag)) return;
         const data = await fetchScoreboard();
         if (mounted && data) {
           setScoreboard(cloneScoreboard(data));
@@ -449,11 +446,27 @@ export function AdminPage() {
       }
     }
 
-    if (isLoggedIn) {
-      load();
+    async function loadCurrentMatchOnly() {
+      try {
+        if (isAutoSaving) return;
+        const focusedTag = document.activeElement?.tagName || "";
+        if (["INPUT", "TEXTAREA", "SELECT"].includes(focusedTag)) return;
+        const currentMatch = await fetchCurrentMatch();
+        if (mounted && currentMatch) {
+          setScoreboard((current) => cloneScoreboard({ ...current, currentMatch }));
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err.message);
+        }
+      }
     }
 
-    const intervalId = isLoggedIn ? window.setInterval(load, adminRefreshIntervalMs) : null;
+    if (isLoggedIn) {
+      loadInitialScoreboard();
+    }
+
+    const intervalId = isLoggedIn ? window.setInterval(loadCurrentMatchOnly, adminRefreshIntervalMs) : null;
 
     return () => {
       mounted = false;
