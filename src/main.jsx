@@ -4,7 +4,7 @@ import { CalendarDays, CheckCircle2, ChevronDown, Clock3, MapPin, Radio, Shield,
 import { AdminPage } from "./Admin";
 import { formatDisplayDateTime, formatMatchSchedule } from "./dateFormat";
 import { fetchLiveUserCount, getBrowserPresenceId, presenceCountIntervalMs, presenceHeartbeatIntervalMs, sendPresenceHeartbeat } from "./firebasePresence";
-import { fetchScoreboard, hasFirebaseConfig, refreshIntervalMs } from "./firebaseScoreboard";
+import { fetchCompletedDateGroups, fetchCompletedMatches, fetchCompletedMatchesByDate, fetchCurrentMatch, fetchTournament, fetchUpcomingDateGroups, fetchUpcomingMatches, fetchUpcomingMatchesByDate, hasFirebaseConfig, refreshIntervalMs } from "./firebaseScoreboard";
 import { sampleScoreboard } from "./sampleData";
 import "./styles.css";
 
@@ -257,12 +257,14 @@ function LiveMatch({ match }) {
   );
 }
 
-function UpcomingMatches({ matches }) {
+function UpcomingMatches({ matches, loaded, loading, onLoad, dateGroups: indexedDateGroups, selectedDateKey: indexedSelectedDateKey, onDateSelect }) {
   const upcoming = Array.isArray(matches) ? matches : [];
   const [selectedMatchId, setSelectedMatchId] = useState("");
   const [selectedDateKey, setSelectedDateKey] = useState("");
-  const dateGroups = getMatchDateGroups(upcoming);
-  const activeGroup = dateGroups.find((group) => group.key === selectedDateKey) || dateGroups[0];
+  const hasIndexedDateGroups = Array.isArray(indexedDateGroups) && indexedDateGroups.length > 0;
+  const dateGroups = hasIndexedDateGroups ? indexedDateGroups.map((group) => ({ ...group, matches: [] })) : getMatchDateGroups(upcoming);
+  const activeDateKey = hasIndexedDateGroups ? indexedSelectedDateKey : selectedDateKey;
+  const activeGroup = hasIndexedDateGroups ? (activeDateKey ? { key: activeDateKey, matches: upcoming.map((match, index) => ({ match, index })) } : null) : dateGroups.find((group) => group.key === activeDateKey) || dateGroups[0];
 
   return (
     <section className="upcoming">
@@ -270,18 +272,23 @@ function UpcomingMatches({ matches }) {
         <CalendarDays size={19} />
         <h2>Upcoming Matches</h2>
       </div>
-      {dateGroups.length > 0 ? <div className="date-group-list">
+      {!loaded ? <div className="match-list">
+        <div className="empty-state">
+          <button type="button" className="secondary-button" onClick={onLoad} disabled={loading}>{loading ? "Loading upcoming matches..." : "Load upcoming matches"}</button>
+        </div>
+      </div> : null}
+      {loaded && dateGroups.length > 0 ? <div className="date-group-list">
         {dateGroups.map((group) => (
-          <button type="button" className={(activeGroup?.key || "") === group.key ? "date-group-button active-date-group" : "date-group-button"} onClick={() => { setSelectedDateKey(group.key); setSelectedMatchId(""); }} key={group.key}>
+          <button type="button" className={(activeGroup?.key || "") === group.key ? "date-group-button active-date-group" : "date-group-button"} onClick={() => { if (hasIndexedDateGroups) onDateSelect(group.key); else setSelectedDateKey(group.key); setSelectedMatchId(""); }} key={group.key} disabled={loading}>
             <strong>{group.label}</strong>
-            <span>{group.matches.length} match{group.matches.length === 1 ? "" : "es"}</span>
+            <span>{hasIndexedDateGroups ? group.count : group.matches.length} match{(hasIndexedDateGroups ? group.count : group.matches.length) === 1 ? "" : "es"}</span>
           </button>
         ))}
       </div> : null}
-      <div className="match-list">
+      {loaded ? <div className="match-list">
         {upcoming.length === 0 ? (
           <div className="empty-state">
-            No upcoming matches scheduled.
+            {hasIndexedDateGroups && !activeDateKey ? "Select a date to load upcoming matches." : loading ? "Loading upcoming matches..." : "No upcoming matches scheduled."}
           </div>
         ) : null}
         {activeGroup?.matches.map(({ match, index }) => (
@@ -308,17 +315,19 @@ function UpcomingMatches({ matches }) {
             </div> : null}
           </article>
         ))}
-      </div>
+      </div> : null}
     </section>
   );
 }
 
-function CompletedMatches({ matches }) {
+function CompletedMatches({ matches, loaded, loading, onLoad, dateGroups: indexedDateGroups, selectedDateKey: indexedSelectedDateKey, onDateSelect }) {
   const completed = asArray(matches);
   const [selectedMatchId, setSelectedMatchId] = useState("");
   const [selectedDateKey, setSelectedDateKey] = useState("");
-  const dateGroups = getMatchDateGroups(completed);
-  const activeGroup = dateGroups.find((group) => group.key === selectedDateKey) || dateGroups[0];
+  const hasIndexedDateGroups = Array.isArray(indexedDateGroups) && indexedDateGroups.length > 0;
+  const dateGroups = hasIndexedDateGroups ? indexedDateGroups.map((group) => ({ ...group, matches: [] })) : getMatchDateGroups(completed);
+  const activeDateKey = hasIndexedDateGroups ? indexedSelectedDateKey : selectedDateKey;
+  const activeGroup = hasIndexedDateGroups ? (activeDateKey ? { key: activeDateKey, matches: completed.map((match, index) => ({ match, index })) } : null) : dateGroups.find((group) => group.key === activeDateKey) || dateGroups[0];
 
   return (
     <section className="completed">
@@ -326,16 +335,21 @@ function CompletedMatches({ matches }) {
         <CheckCircle2 size={19} />
         <h2>Completed Matches</h2>
       </div>
-      {dateGroups.length > 0 ? <div className="date-group-list">
+      {!loaded ? <div className="match-list">
+        <div className="empty-state">
+          <button type="button" className="secondary-button" onClick={onLoad} disabled={loading}>{loading ? "Loading completed matches..." : "Load completed matches"}</button>
+        </div>
+      </div> : null}
+      {loaded && dateGroups.length > 0 ? <div className="date-group-list">
         {dateGroups.map((group) => (
-          <button type="button" className={(activeGroup?.key || "") === group.key ? "date-group-button active-date-group" : "date-group-button"} onClick={() => { setSelectedDateKey(group.key); setSelectedMatchId(""); }} key={group.key}>
+          <button type="button" className={(activeGroup?.key || "") === group.key ? "date-group-button active-date-group" : "date-group-button"} onClick={() => { if (hasIndexedDateGroups) onDateSelect(group.key); else setSelectedDateKey(group.key); setSelectedMatchId(""); }} key={group.key} disabled={loading}>
             <strong>{group.label}</strong>
-            <span>{group.matches.length} match{group.matches.length === 1 ? "" : "es"}</span>
+            <span>{hasIndexedDateGroups ? group.count : group.matches.length} match{(hasIndexedDateGroups ? group.count : group.matches.length) === 1 ? "" : "es"}</span>
           </button>
         ))}
       </div> : null}
-      <div className="match-list">
-        {completed.length === 0 ? <div className="empty-state">No completed matches.</div> : null}
+      {loaded ? <div className="match-list">
+        {completed.length === 0 ? <div className="empty-state">{hasIndexedDateGroups && !activeDateKey ? "Select a date to load completed matches." : loading ? "Loading completed matches..." : "No completed matches."}</div> : null}
         {activeGroup?.matches.map(({ match, index }) => {
           const matchKey = match.id || `${match.matchNo}-${index}`;
           const teamAId = match.battingTeamId || "teamA";
@@ -381,7 +395,7 @@ function CompletedMatches({ matches }) {
             </article>
           );
         })}
-      </div>
+      </div> : null}
     </section>
   );
 }
@@ -447,9 +461,17 @@ function CompletedMatchDetails({ match, teamAId, teamBId, teamA, teamB }) {
 
 function App() {
   const [route, setRoute] = useState(() => window.location.hash);
-  const [scoreboard, setScoreboard] = useState(sampleScoreboard);
+  const [scoreboard, setScoreboard] = useState(() => hasFirebaseConfig() ? { ...sampleScoreboard, upcomingMatches: [], completedMatches: [] } : sampleScoreboard);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [liveViewerCount, setLiveViewerCount] = useState(null);
+  const [upcomingLoaded, setUpcomingLoaded] = useState(!hasFirebaseConfig());
+  const [completedLoaded, setCompletedLoaded] = useState(!hasFirebaseConfig());
+  const [upcomingLoading, setUpcomingLoading] = useState(false);
+  const [completedLoading, setCompletedLoading] = useState(false);
+  const [upcomingDateGroups, setUpcomingDateGroups] = useState([]);
+  const [completedDateGroups, setCompletedDateGroups] = useState([]);
+  const [selectedUpcomingDateKey, setSelectedUpcomingDateKey] = useState("");
+  const [selectedCompletedDateKey, setSelectedCompletedDateKey] = useState("");
   const [error, setError] = useState("");
   const usingFirebase = useMemo(() => hasFirebaseConfig(), []);
   const isAdminRoute = route === "#/admin" || window.location.pathname.replace(/\/$/, "").endsWith("/admin");
@@ -463,16 +485,82 @@ function App() {
     return () => window.removeEventListener("hashchange", handleRouteChange);
   }, []);
 
+  async function loadUpcomingList() {
+    if (!usingFirebase) return;
+    setUpcomingLoading(true);
+    try {
+      const upcomingMatches = await fetchUpcomingMatches();
+      setScoreboard((current) => ({ ...current, upcomingMatches: asArray(upcomingMatches) }));
+      setUpcomingLoaded(true);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUpcomingLoading(false);
+    }
+  }
+
+  async function loadCompletedList() {
+    if (!usingFirebase) return;
+    setCompletedLoading(true);
+    try {
+      const completedMatches = await fetchCompletedMatches();
+      setScoreboard((current) => ({ ...current, completedMatches: asArray(completedMatches) }));
+      setCompletedLoaded(true);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCompletedLoading(false);
+    }
+  }
+
+  async function loadUpcomingDate(dateKey) {
+    if (!usingFirebase) return;
+    setUpcomingLoading(true);
+    try {
+      const upcomingMatches = await fetchUpcomingMatchesByDate(dateKey);
+      setScoreboard((current) => ({ ...current, upcomingMatches: asArray(upcomingMatches) }));
+      setSelectedUpcomingDateKey(dateKey);
+      setUpcomingLoaded(true);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUpcomingLoading(false);
+    }
+  }
+
+  async function loadCompletedDate(dateKey) {
+    if (!usingFirebase) return;
+    setCompletedLoading(true);
+    try {
+      const completedMatches = await fetchCompletedMatchesByDate(dateKey);
+      setScoreboard((current) => ({ ...current, completedMatches: asArray(completedMatches) }));
+      setSelectedCompletedDateKey(dateKey);
+      setCompletedLoaded(true);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCompletedLoading(false);
+    }
+  }
+
   useEffect(() => {
+    if (isAdminRoute) return undefined;
+
     let mounted = true;
 
-    async function loadScoreboard() {
+    async function loadCurrentScoreboard() {
       try {
-        const data = await fetchScoreboard();
+        const [currentMatch, tournament, upcomingDates, completedDates] = await Promise.all([fetchCurrentMatch(), fetchTournament(), fetchUpcomingDateGroups(), fetchCompletedDateGroups()]);
         if (!mounted) return;
-        if (data) {
-          setScoreboard(data);
-        }
+        setScoreboard((current) => ({ ...current, currentMatch: currentMatch || sampleScoreboard.currentMatch, tournament: tournament || current.tournament || sampleScoreboard.tournament }));
+        setUpcomingDateGroups(asArray(upcomingDates));
+        setCompletedDateGroups(asArray(completedDates));
+        setUpcomingLoaded(asArray(upcomingDates).length > 0);
+        setCompletedLoaded(asArray(completedDates).length > 0);
         setLastRefresh(new Date().toISOString());
         setError("");
       } catch (err) {
@@ -483,14 +571,29 @@ function App() {
       }
     }
 
-    loadScoreboard();
-    const intervalId = window.setInterval(loadScoreboard, refreshIntervalMs);
+    async function loadCurrentMatchOnly() {
+      try {
+        const currentMatch = await fetchCurrentMatch();
+        if (!mounted) return;
+        setScoreboard((current) => ({ ...current, currentMatch: currentMatch || sampleScoreboard.currentMatch }));
+        setLastRefresh(new Date().toISOString());
+        setError("");
+      } catch (err) {
+        if (mounted) {
+          setError(err.message);
+          setLastRefresh(new Date().toISOString());
+        }
+      }
+    }
+
+    loadCurrentScoreboard();
+    const intervalId = window.setInterval(loadCurrentMatchOnly, refreshIntervalMs);
 
     return () => {
       mounted = false;
       window.clearInterval(intervalId);
     };
-  }, []);
+  }, [isAdminRoute]);
 
   useEffect(() => {
     if (!usingFirebase || isAdminRoute) {
@@ -585,8 +688,8 @@ function App() {
       ) : null}
 
       {hasLiveMatch ? <LiveMatch match={{ ...match, venue: match.venue || tournament.venue }} /> : null}
-      <UpcomingMatches matches={visibleUpcomingMatches} />
-      <CompletedMatches matches={visibleCompletedMatches} />
+      <UpcomingMatches matches={visibleUpcomingMatches} loaded={upcomingLoaded || matchStatus === "PRE LIVE"} loading={upcomingLoading} onLoad={loadUpcomingList} dateGroups={matchStatus === "PRE LIVE" ? [] : upcomingDateGroups} selectedDateKey={selectedUpcomingDateKey} onDateSelect={loadUpcomingDate} />
+      <CompletedMatches matches={visibleCompletedMatches} loaded={completedLoaded || ["COMPLETED", "CANCELLED"].includes(matchStatus)} loading={completedLoading} onLoad={loadCompletedList} dateGroups={["COMPLETED", "CANCELLED"].includes(matchStatus) ? [] : completedDateGroups} selectedDateKey={selectedCompletedDateKey} onDateSelect={loadCompletedDate} />
     </main>
   );
 }
